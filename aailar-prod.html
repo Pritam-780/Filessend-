@@ -1,0 +1,833 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AAILAR PROD - File Sharing Platform</title>
+    <meta name="description" content="AAILAR PROD - Your go-to platform for sharing academic books, relaxing content, and expert sessions. Upload and download files easily.">
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <style>
+        :root {
+            --primary: #3b82f6;
+            --secondary: #1e293b;
+            --accent: #f1f5f9;
+        }
+        
+        .bg-primary { background-color: var(--primary); }
+        .text-primary { color: var(--primary); }
+        .text-secondary { color: var(--secondary); }
+        .surface { background-color: white; }
+        
+        .hamburger {
+            display: flex;
+            flex-direction: column;
+            width: 24px;
+            height: 18px;
+            cursor: pointer;
+        }
+        
+        .hamburger span {
+            height: 2px;
+            background-color: currentColor;
+            margin: 2px 0;
+            transition: 0.3s;
+        }
+        
+        .hamburger.active span:nth-child(1) {
+            transform: rotate(-45deg) translate(-5px, 6px);
+        }
+        
+        .hamburger.active span:nth-child(2) {
+            opacity: 0;
+        }
+        
+        .hamburger.active span:nth-child(3) {
+            transform: rotate(45deg) translate(-5px, -6px);
+        }
+        
+        .mobile-menu {
+            transform: translateX(-100%);
+            transition: transform 0.3s ease-in-out;
+        }
+        
+        .mobile-menu.open {
+            transform: translateX(0);
+        }
+        
+        .file-card {
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .file-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            z-index: 1000;
+        }
+        
+        .modal.show {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal-content {
+            background: white;
+            border-radius: 12px;
+            max-width: 90vw;
+            max-height: 90vh;
+            overflow: auto;
+        }
+        
+        .drop-zone {
+            border: 2px dashed #cbd5e1;
+            transition: all 0.3s ease;
+        }
+        
+        .drop-zone.dragover {
+            border-color: var(--primary);
+            background-color: #f8fafc;
+        }
+        
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 16px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            z-index: 1001;
+            opacity: 0;
+            transform: translateX(100%);
+            transition: all 0.3s ease;
+        }
+        
+        .toast.show {
+            opacity: 1;
+            transform: translateX(0);
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background-color: #e2e8f0;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background-color: var(--primary);
+            transition: width 0.3s ease;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- Header -->
+    <header class="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <!-- Logo -->
+                <div class="flex items-center">
+                    <h1 class="text-2xl font-bold text-primary">AAILAR PROD</h1>
+                </div>
+                
+                <!-- Desktop Navigation -->
+                <nav class="hidden md:flex space-x-8">
+                    <a href="#" onclick="showPage('home')" class="nav-link text-gray-700 hover:text-primary font-medium">Home</a>
+                    <a href="#" onclick="showPage('academic')" class="nav-link text-gray-700 hover:text-primary font-medium">Academic Books</a>
+                    <a href="#" onclick="showPage('relaxing')" class="nav-link text-gray-700 hover:text-primary font-medium">Relaxing Books</a>
+                    <a href="#" onclick="showPage('sessions')" class="nav-link text-gray-700 hover:text-primary font-medium">Best Sessions</a>
+                </nav>
+                
+                <!-- Upload Button & Mobile Menu -->
+                <div class="flex items-center space-x-4">
+                    <button onclick="openUploadModal()" class="bg-primary text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors">
+                        Upload Files
+                    </button>
+                    
+                    <!-- Mobile Hamburger -->
+                    <button class="md:hidden hamburger" onclick="toggleMobileMenu()">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Mobile Menu -->
+        <div id="mobileMenu" class="mobile-menu fixed inset-y-0 left-0 w-64 bg-white shadow-lg z-50 md:hidden">
+            <div class="p-6">
+                <div class="mb-8">
+                    <h2 class="text-xl font-bold text-primary">AAILAR PROD</h2>
+                </div>
+                <nav class="space-y-4">
+                    <a href="#" onclick="showPage('home'); toggleMobileMenu()" class="block py-2 text-gray-700 hover:text-primary font-medium">Home</a>
+                    <a href="#" onclick="showPage('academic'); toggleMobileMenu()" class="block py-2 text-gray-700 hover:text-primary font-medium">Academic Books</a>
+                    <a href="#" onclick="showPage('relaxing'); toggleMobileMenu()" class="block py-2 text-gray-700 hover:text-primary font-medium">Relaxing Books</a>
+                    <a href="#" onclick="showPage('sessions'); toggleMobileMenu()" class="block py-2 text-gray-700 hover:text-primary font-medium">Best Sessions</a>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main>
+        <!-- Home Page -->
+        <div id="homePage" class="page">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                <!-- Hero Section -->
+                <section class="text-center mb-12">
+                    <h2 class="text-4xl md:text-6xl font-bold text-secondary mb-4">Welcome to AAILAR PROD</h2>
+                    <p class="text-xl text-gray-600 max-w-3xl mx-auto mb-8">
+                        Your premier destination for academic materials, relaxing content, and expert sessions. 
+                        Upload, share, and discover valuable resources.
+                    </p>
+                    <button onclick="openUploadModal()" class="bg-primary text-white px-8 py-3 rounded-lg text-lg font-semibold hover:bg-blue-600 transition-colors">
+                        Start Uploading
+                    </button>
+                </section>
+
+                <!-- Categories -->
+                <section class="grid md:grid-cols-3 gap-8 mb-12">
+                    <div class="surface rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow cursor-pointer" onclick="showPage('academic')">
+                        <div class="text-4xl mb-4">📚</div>
+                        <h3 class="text-xl font-semibold text-secondary mb-2">Academic Books</h3>
+                        <p class="text-gray-600">Textbooks, research papers, and educational materials for learning and development.</p>
+                        <span class="inline-block mt-4 text-primary font-medium">Browse Academic →</span>
+                    </div>
+                    
+                    <div class="surface rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow cursor-pointer" onclick="showPage('relaxing')">
+                        <div class="text-4xl mb-4">🌙</div>
+                        <h3 class="text-xl font-semibold text-secondary mb-2">Relaxing Books</h3>
+                        <p class="text-gray-600">Fiction, novels, and leisure reading materials for your downtime.</p>
+                        <span class="inline-block mt-4 text-primary font-medium">Browse Relaxing →</span>
+                    </div>
+                    
+                    <div class="surface rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow cursor-pointer" onclick="showPage('sessions')">
+                        <div class="text-4xl mb-4">🎯</div>
+                        <h3 class="text-xl font-semibold text-secondary mb-2">Best Sessions</h3>
+                        <p class="text-gray-600">Curated content and sessions from experts and thought leaders.</p>
+                        <span class="inline-block mt-4 text-primary font-medium">Browse Sessions →</span>
+                    </div>
+                </section>
+
+                <!-- Search -->
+                <section class="mb-8">
+                    <div class="surface rounded-xl shadow-sm border border-gray-200 p-6">
+                        <h3 class="text-lg font-semibold text-secondary mb-4">Search Files</h3>
+                        <div class="flex gap-4">
+                            <input type="text" id="homeSearchInput" placeholder="Search all files..." class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent">
+                            <button onclick="searchFiles()" class="bg-primary text-white px-6 py-2 rounded-lg hover:bg-blue-600 transition-colors">
+                                🔍 Search
+                            </button>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Recent Files -->
+                <section>
+                    <h3 class="text-2xl font-bold text-secondary mb-6">Recent Files</h3>
+                    <div id="homeFileGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                        <!-- Files will be loaded here -->
+                    </div>
+                </section>
+            </div>
+        </div>
+
+        <!-- Category Pages -->
+        <div id="academicPage" class="page hidden">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                <div class="mb-6">
+                    <button onclick="showPage('home')" class="text-primary hover:text-blue-600 mb-4">← Back to Home</button>
+                    <h1 class="text-3xl md:text-4xl font-bold text-secondary mb-4">Academic Books</h1>
+                    <p class="text-lg text-gray-600">Textbooks, research papers, and educational materials for learning and development.</p>
+                </div>
+                
+                <div class="mb-6">
+                    <input type="text" id="academicSearchInput" placeholder="Search academic books..." class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent">
+                </div>
+                
+                <div id="academicFileGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                    <!-- Files will be loaded here -->
+                </div>
+            </div>
+        </div>
+
+        <div id="relaxingPage" class="page hidden">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                <div class="mb-6">
+                    <button onclick="showPage('home')" class="text-primary hover:text-blue-600 mb-4">← Back to Home</button>
+                    <h1 class="text-3xl md:text-4xl font-bold text-secondary mb-4">Relaxing Books</h1>
+                    <p class="text-lg text-gray-600">Fiction, novels, and leisure reading materials for your downtime.</p>
+                </div>
+                
+                <div class="mb-6">
+                    <input type="text" id="relaxingSearchInput" placeholder="Search relaxing books..." class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent">
+                </div>
+                
+                <div id="relaxingFileGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                    <!-- Files will be loaded here -->
+                </div>
+            </div>
+        </div>
+
+        <div id="sessionsPage" class="page hidden">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                <div class="mb-6">
+                    <button onclick="showPage('home')" class="text-primary hover:text-blue-600 mb-4">← Back to Home</button>
+                    <h1 class="text-3xl md:text-4xl font-bold text-secondary mb-4">Best Sessions</h1>
+                    <p class="text-lg text-gray-600">Curated content and sessions from experts and thought leaders.</p>
+                </div>
+                
+                <div class="mb-6">
+                    <input type="text" id="sessionsSearchInput" placeholder="Search sessions..." class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent">
+                </div>
+                
+                <div id="sessionsFileGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                    <!-- Files will be loaded here -->
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Upload Modal -->
+    <div id="uploadModal" class="modal">
+        <div class="modal-content p-6 w-full max-w-2xl">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-bold text-secondary">Upload Files</h2>
+                <button onclick="closeUploadModal()" class="text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
+            </div>
+            
+            <div class="mb-6">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Category</label>
+                <select id="uploadCategory" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent">
+                    <option value="academic">Academic Books</option>
+                    <option value="relaxing">Relaxing Books</option>
+                    <option value="sessions">Best Sessions</option>
+                </select>
+            </div>
+            
+            <div class="drop-zone border-2 border-dashed border-gray-300 rounded-lg p-8 text-center mb-4" id="dropZone">
+                <div class="text-4xl mb-4">📁</div>
+                <p class="text-lg font-medium text-gray-700 mb-2">Drop files here or click to browse</p>
+                <p class="text-sm text-gray-500 mb-4">Supports PDF, images, Excel files (max 15MB each)</p>
+                <input type="file" id="fileInput" multiple accept=".pdf,.jpg,.jpeg,.png,.xls,.xlsx" class="hidden">
+                <button onclick="document.getElementById('fileInput').click()" class="bg-primary text-white px-6 py-2 rounded-lg hover:bg-blue-600 transition-colors">
+                    Choose Files
+                </button>
+            </div>
+            
+            <div id="fileList" class="mb-4">
+                <!-- Selected files will appear here -->
+            </div>
+            
+            <div id="uploadProgress" class="hidden mb-4">
+                <div class="progress-bar">
+                    <div id="progressFill" class="progress-fill" style="width: 0%"></div>
+                </div>
+                <p id="progressText" class="text-sm text-gray-600 mt-2">Uploading...</p>
+            </div>
+            
+            <div class="flex justify-end space-x-4">
+                <button onclick="closeUploadModal()" class="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors">
+                    Cancel
+                </button>
+                <button onclick="uploadFiles()" id="uploadButton" class="bg-primary text-white px-6 py-2 rounded-lg hover:bg-blue-600 transition-colors" disabled>
+                    Upload Files
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Preview Modal -->
+    <div id="previewModal" class="modal">
+        <div class="modal-content p-6 w-full max-w-4xl">
+            <div class="flex justify-between items-center mb-6">
+                <h2 id="previewTitle" class="text-2xl font-bold text-secondary">File Preview</h2>
+                <div class="flex space-x-2">
+                    <button onclick="downloadPreviewFile()" class="bg-primary text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors">
+                        Download
+                    </button>
+                    <button onclick="closePreviewModal()" class="text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
+                </div>
+            </div>
+            
+            <div id="previewContent" class="max-h-96 overflow-auto">
+                <!-- Preview content will appear here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div id="toastContainer"></div>
+
+    <script>
+        // Global state
+        let selectedFiles = [];
+        let currentPreviewFile = null;
+        let isUploading = false;
+
+        // File storage using localStorage
+        const FileStorage = {
+            getFiles() {
+                const files = localStorage.getItem('aailar_files');
+                return files ? JSON.parse(files) : [];
+            },
+
+            saveFiles(files) {
+                localStorage.setItem('aailar_files', JSON.stringify(files));
+            },
+
+            addFile(fileData) {
+                const files = this.getFiles();
+                files.push(fileData);
+                this.saveFiles(files);
+            },
+
+            getFilesByCategory(category) {
+                const files = this.getFiles();
+                return files.filter(file => file.category === category);
+            },
+
+            searchFiles(query, category = null) {
+                const files = this.getFiles();
+                const filteredFiles = category ? files.filter(f => f.category === category) : files;
+                
+                if (!query) return filteredFiles;
+                
+                const searchTerm = query.toLowerCase();
+                return filteredFiles.filter(file => 
+                    file.originalName.toLowerCase().includes(searchTerm) ||
+                    file.category.toLowerCase().includes(searchTerm)
+                );
+            }
+        };
+
+        // Navigation
+        function showPage(pageId) {
+            // Hide all pages
+            document.querySelectorAll('.page').forEach(page => {
+                page.classList.add('hidden');
+            });
+            
+            // Show selected page
+            document.getElementById(pageId + 'Page').classList.remove('hidden');
+            
+            // Load files for the page
+            loadPageFiles(pageId);
+            
+            // Update active nav link
+            document.querySelectorAll('.nav-link').forEach(link => {
+                link.classList.remove('text-primary');
+                link.classList.add('text-gray-700');
+            });
+        }
+
+        function toggleMobileMenu() {
+            const menu = document.getElementById('mobileMenu');
+            const hamburger = document.querySelector('.hamburger');
+            
+            menu.classList.toggle('open');
+            hamburger.classList.toggle('active');
+        }
+
+        // File loading and display
+        function loadPageFiles(pageId) {
+            let files = [];
+            let gridId = '';
+            
+            if (pageId === 'home') {
+                files = FileStorage.getFiles().slice(-12); // Show recent 12 files
+                gridId = 'homeFileGrid';
+            } else {
+                files = FileStorage.getFilesByCategory(pageId);
+                gridId = pageId + 'FileGrid';
+            }
+            
+            displayFiles(files, gridId);
+        }
+
+        function displayFiles(files, gridId) {
+            const grid = document.getElementById(gridId);
+            
+            if (files.length === 0) {
+                grid.innerHTML = `
+                    <div class="col-span-full text-center py-12">
+                        <div class="text-6xl mb-4">📂</div>
+                        <h3 class="text-lg font-semibold text-gray-600 mb-2">No files found</h3>
+                        <p class="text-gray-500">Upload some files to get started</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            grid.innerHTML = files.map(file => createFileCard(file)).join('');
+        }
+
+        function createFileCard(file) {
+            const formatFileSize = (bytes) => {
+                const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+                if (bytes === 0) return '0 Bytes';
+                const i = Math.floor(Math.log(bytes) / Math.log(1024));
+                return Math.round(bytes / Math.pow(1024, i) * 100) / 100 + ' ' + sizes[i];
+            };
+
+            const getFileIcon = (mimeType) => {
+                if (mimeType.includes('pdf')) return '📄';
+                if (mimeType.includes('image')) return '🖼️';
+                if (mimeType.includes('excel') || mimeType.includes('spreadsheet')) return '📊';
+                return '📁';
+            };
+
+            return `
+                <div class="file-card surface rounded-xl shadow-sm border border-gray-200 p-4 cursor-pointer" onclick="previewFile('${file.id}')">
+                    <div class="text-4xl mb-3 text-center">${getFileIcon(file.mimeType)}</div>
+                    <h4 class="font-semibold text-secondary mb-2 truncate" title="${file.originalName}">${file.originalName}</h4>
+                    <div class="text-sm text-gray-500 space-y-1">
+                        <p>Size: ${formatFileSize(file.size)}</p>
+                        <p>Category: ${file.category}</p>
+                        <p>Uploaded: ${new Date(file.uploadedAt).toLocaleDateString()}</p>
+                    </div>
+                    <div class="mt-4 flex space-x-2">
+                        <button onclick="event.stopPropagation(); previewFile('${file.id}')" class="flex-1 bg-primary text-white px-3 py-1 rounded text-sm hover:bg-blue-600 transition-colors">
+                            Preview
+                        </button>
+                        <button onclick="event.stopPropagation(); downloadFile('${file.id}')" class="flex-1 border border-gray-300 text-gray-700 px-3 py-1 rounded text-sm hover:bg-gray-50 transition-colors">
+                            Download
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Search functionality
+        function searchFiles() {
+            const query = document.getElementById('homeSearchInput').value;
+            const files = FileStorage.searchFiles(query);
+            displayFiles(files, 'homeFileGrid');
+        }
+
+        // Add search functionality to category pages
+        document.addEventListener('DOMContentLoaded', function() {
+            ['academic', 'relaxing', 'sessions'].forEach(category => {
+                const searchInput = document.getElementById(category + 'SearchInput');
+                if (searchInput) {
+                    searchInput.addEventListener('input', function() {
+                        const query = this.value;
+                        const files = FileStorage.searchFiles(query, category);
+                        displayFiles(files, category + 'FileGrid');
+                    });
+                }
+            });
+            
+            // Home search
+            const homeSearchInput = document.getElementById('homeSearchInput');
+            if (homeSearchInput) {
+                homeSearchInput.addEventListener('input', function() {
+                    const query = this.value;
+                    const files = FileStorage.searchFiles(query);
+                    displayFiles(files, 'homeFileGrid');
+                });
+            }
+        });
+
+        // Upload functionality
+        function openUploadModal() {
+            document.getElementById('uploadModal').classList.add('show');
+            selectedFiles = [];
+            updateFileList();
+        }
+
+        function closeUploadModal() {
+            document.getElementById('uploadModal').classList.remove('show');
+            selectedFiles = [];
+            updateFileList();
+            document.getElementById('uploadProgress').classList.add('hidden');
+            isUploading = false;
+        }
+
+        // File selection
+        document.addEventListener('DOMContentLoaded', function() {
+            const fileInput = document.getElementById('fileInput');
+            const dropZone = document.getElementById('dropZone');
+
+            fileInput.addEventListener('change', function(e) {
+                handleFiles(e.target.files);
+            });
+
+            dropZone.addEventListener('dragover', function(e) {
+                e.preventDefault();
+                this.classList.add('dragover');
+            });
+
+            dropZone.addEventListener('dragleave', function() {
+                this.classList.remove('dragover');
+            });
+
+            dropZone.addEventListener('drop', function(e) {
+                e.preventDefault();
+                this.classList.remove('dragover');
+                handleFiles(e.dataTransfer.files);
+            });
+        });
+
+        function handleFiles(files) {
+            const maxSize = 15 * 1024 * 1024; // 15MB
+            const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/jpg', 'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'];
+
+            Array.from(files).forEach(file => {
+                if (file.size > maxSize) {
+                    showToast(`File ${file.name} is too large (max 15MB)`, 'error');
+                    return;
+                }
+
+                if (!allowedTypes.includes(file.type)) {
+                    showToast(`File type not supported: ${file.name}`, 'error');
+                    return;
+                }
+
+                selectedFiles.push(file);
+            });
+
+            updateFileList();
+        }
+
+        function updateFileList() {
+            const fileList = document.getElementById('fileList');
+            const uploadButton = document.getElementById('uploadButton');
+
+            if (selectedFiles.length === 0) {
+                fileList.innerHTML = '';
+                uploadButton.disabled = true;
+                return;
+            }
+
+            uploadButton.disabled = false;
+            
+            fileList.innerHTML = `
+                <h4 class="font-medium text-gray-700 mb-2">Selected Files (${selectedFiles.length}):</h4>
+                <div class="space-y-2 max-h-32 overflow-y-auto">
+                    ${selectedFiles.map((file, index) => `
+                        <div class="flex justify-between items-center bg-gray-50 p-2 rounded">
+                            <span class="text-sm truncate">${file.name}</span>
+                            <button onclick="removeFile(${index})" class="text-red-500 hover:text-red-700 ml-2">×</button>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+
+        function removeFile(index) {
+            selectedFiles.splice(index, 1);
+            updateFileList();
+        }
+
+        async function uploadFiles() {
+            if (selectedFiles.length === 0 || isUploading) return;
+
+            isUploading = true;
+            const category = document.getElementById('uploadCategory').value;
+            const progressElement = document.getElementById('uploadProgress');
+            const progressFill = document.getElementById('progressFill');
+            const progressText = document.getElementById('progressText');
+            const uploadButton = document.getElementById('uploadButton');
+
+            progressElement.classList.remove('hidden');
+            uploadButton.disabled = true;
+
+            try {
+                for (let i = 0; i < selectedFiles.length; i++) {
+                    const file = selectedFiles[i];
+                    const progress = ((i + 1) / selectedFiles.length) * 100;
+                    
+                    progressFill.style.width = progress + '%';
+                    progressText.textContent = `Uploading ${file.name}... (${i + 1}/${selectedFiles.length})`;
+
+                    // Convert file to base64
+                    const base64Data = await fileToBase64(file);
+                    
+                    const fileData = {
+                        id: generateId(),
+                        originalName: file.name,
+                        filename: file.name,
+                        mimeType: file.type,
+                        size: file.size,
+                        category: category,
+                        uploadedAt: new Date().toISOString(),
+                        data: base64Data
+                    };
+
+                    FileStorage.addFile(fileData);
+                    
+                    // Small delay to show progress
+                    await new Promise(resolve => setTimeout(resolve, 200));
+                }
+
+                showToast('Files uploaded successfully!', 'success');
+                closeUploadModal();
+                
+                // Refresh current page
+                const currentPage = document.querySelector('.page:not(.hidden)').id.replace('Page', '');
+                loadPageFiles(currentPage);
+
+            } catch (error) {
+                console.error('Upload error:', error);
+                showToast('Upload failed. Please try again.', 'error');
+            } finally {
+                isUploading = false;
+                uploadButton.disabled = false;
+                progressElement.classList.add('hidden');
+            }
+        }
+
+        function fileToBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
+        }
+
+        function generateId() {
+            return Date.now().toString(36) + Math.random().toString(36).substr(2);
+        }
+
+        // Preview functionality
+        function previewFile(fileId) {
+            const files = FileStorage.getFiles();
+            const file = files.find(f => f.id === fileId);
+            
+            if (!file) return;
+            
+            currentPreviewFile = file;
+            
+            const modal = document.getElementById('previewModal');
+            const title = document.getElementById('previewTitle');
+            const content = document.getElementById('previewContent');
+            
+            title.textContent = file.originalName;
+            
+            if (file.mimeType.includes('image')) {
+                content.innerHTML = `<img src="${file.data}" alt="${file.originalName}" class="max-w-full h-auto mx-auto">`;
+            } else if (file.mimeType.includes('pdf')) {
+                content.innerHTML = `
+                    <div class="text-center py-8">
+                        <div class="text-6xl mb-4">📄</div>
+                        <p class="text-lg font-medium">PDF Preview</p>
+                        <p class="text-gray-600 mb-4">${file.originalName}</p>
+                        <button onclick="downloadFile('${file.id}')" class="bg-primary text-white px-6 py-2 rounded-lg hover:bg-blue-600 transition-colors">
+                            Download to View
+                        </button>
+                    </div>
+                `;
+            } else {
+                content.innerHTML = `
+                    <div class="text-center py-8">
+                        <div class="text-6xl mb-4">📁</div>
+                        <p class="text-lg font-medium">File Preview</p>
+                        <p class="text-gray-600 mb-4">${file.originalName}</p>
+                        <p class="text-sm text-gray-500 mb-4">Type: ${file.mimeType}</p>
+                        <button onclick="downloadFile('${file.id}')" class="bg-primary text-white px-6 py-2 rounded-lg hover:bg-blue-600 transition-colors">
+                            Download File
+                        </button>
+                    </div>
+                `;
+            }
+            
+            modal.classList.add('show');
+        }
+
+        function closePreviewModal() {
+            document.getElementById('previewModal').classList.remove('show');
+            currentPreviewFile = null;
+        }
+
+        function downloadPreviewFile() {
+            if (currentPreviewFile) {
+                downloadFile(currentPreviewFile.id);
+            }
+        }
+
+        function downloadFile(fileId) {
+            const files = FileStorage.getFiles();
+            const file = files.find(f => f.id === fileId);
+            
+            if (!file) return;
+            
+            // Convert base64 back to blob and download
+            const byteCharacters = atob(file.data.split(',')[1]);
+            const byteNumbers = new Array(byteCharacters.length);
+            for (let i = 0; i < byteCharacters.length; i++) {
+                byteNumbers[i] = byteCharacters.charCodeAt(i);
+            }
+            const byteArray = new Uint8Array(byteNumbers);
+            const blob = new Blob([byteArray], { type: file.mimeType });
+            
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = file.originalName;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            showToast(`Downloaded: ${file.originalName}`, 'success');
+        }
+
+        // Toast notifications
+        function showToast(message, type = 'info') {
+            const toastContainer = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            
+            const icon = type === 'success' ? '✅' : type === 'error' ? '❌' : 'ℹ️';
+            const bgColor = type === 'success' ? 'bg-green-50 border-green-200' : 
+                           type === 'error' ? 'bg-red-50 border-red-200' : 
+                           'bg-blue-50 border-blue-200';
+            
+            toast.innerHTML = `
+                <div class="${bgColor} p-4 rounded-lg border">
+                    <div class="flex items-center">
+                        <span class="text-lg mr-2">${icon}</span>
+                        <span class="text-sm font-medium">${message}</span>
+                    </div>
+                </div>
+            `;
+            
+            toastContainer.appendChild(toast);
+            
+            // Show toast
+            setTimeout(() => toast.classList.add('show'), 100);
+            
+            // Hide and remove toast
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => toastContainer.removeChild(toast), 300);
+            }, 3000);
+        }
+
+        // Initialize the app
+        document.addEventListener('DOMContentLoaded', function() {
+            showPage('home');
+        });
+    </script>
+</body>
+</html>

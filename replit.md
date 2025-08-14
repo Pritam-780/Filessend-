@@ -1,6 +1,10 @@
 # Overview
 
-AAILAR PROD is a modern file management application built with React and Express.js that allows users to upload, organize, and preview files across different categories. The application supports multiple file types including PDFs, images, and Excel files, with a focus on academic materials, relaxing content, and session recordings. Users can browse files by category, search through their collection, and preview files directly in the browser.
+AAILAR PROD is a modern file management application that allows users to upload, organize, and preview files across different categories. The application supports multiple file types including PDFs, images, and Excel files, with a focus on academic materials, relaxing content, and session recordings. Users can browse files by category, search through their collection, and preview files directly in the browser.
+
+The project now includes both a React-based version and a standalone HTML version for maximum flexibility:
+- React version: Full-featured SPA with modern development tools
+- Standalone HTML version: Single-file solution that runs independently in any browser
 
 # User Preferences
 
