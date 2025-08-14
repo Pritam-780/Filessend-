@@ -1,37 +1,57 @@
 import { X, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { File } from "@shared/schema";
+import { FileData, fileStorage } from "@/lib/fileStorage";
 
 interface PreviewModalProps {
   isOpen: boolean;
   onClose: () => void;
-  file: File | null;
+  file: FileData | null;
 }
 
 export default function PreviewModal({ isOpen, onClose, file }: PreviewModalProps) {
   if (!isOpen || !file) return null;
 
   const handleDownload = () => {
-    window.open(`/api/files/${file.id}/download`, '_blank');
+    if (!file) return;
+    const url = fileStorage.getFileUrl(file);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = file.originalName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   };
 
   const renderPreview = () => {
+    if (!file) return null;
+    
     if (file.mimeType.startsWith('image/')) {
+      const imageUrl = fileStorage.getFileUrl(file);
       return (
         <img 
-          src={`/api/files/${file.id}/preview`}
+          src={imageUrl}
           alt={file.originalName}
           className="max-w-full max-h-full object-contain"
+          onLoad={() => {
+            // Clean up the URL after the image loads
+            setTimeout(() => URL.revokeObjectURL(imageUrl), 1000);
+          }}
         />
       );
     }
     
     if (file.mimeType === 'application/pdf') {
+      const pdfUrl = fileStorage.getFileUrl(file);
       return (
         <iframe
-          src={`/api/files/${file.id}/preview`}
+          src={pdfUrl}
           className="w-full h-full border-0"
           title={file.originalName}
+          onLoad={() => {
+            // Clean up the URL after the iframe loads
+            setTimeout(() => URL.revokeObjectURL(pdfUrl), 1000);
+          }}
         />
       );
     }

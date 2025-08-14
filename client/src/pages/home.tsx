@@ -1,5 +1,4 @@
-import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useState, useEffect } from "react";
 import { Link } from "wouter";
 import { Search, Grid, List, GraduationCap, BookOpen, Users } from "lucide-react";
 import Header from "@/components/header";
@@ -8,24 +7,51 @@ import PreviewModal from "@/components/preview-modal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { File } from "@shared/schema";
+import { FileData, fileStorage } from "@/lib/fileStorage";
 
 export default function Home() {
-  const [previewFile, setPreviewFile] = useState<File | null>(null);
+  const [previewFile, setPreviewFile] = useState<FileData | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [fileTypeFilter, setFileTypeFilter] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
+  const [files, setFiles] = useState<FileData[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const { data: files = [], isLoading } = useQuery<File[]>({
-    queryKey: ['/api/files'],
-  });
+  useEffect(() => {
+    // Load files from localStorage
+    const loadFiles = () => {
+      try {
+        const allFiles = fileStorage.getAllFiles();
+        setFiles(allFiles);
+      } catch (error) {
+        console.error('Error loading files:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
-  const { data: searchResults = [] } = useQuery<File[]>({
-    queryKey: ['/api/files/search', { q: searchQuery, category: categoryFilter !== "all" ? categoryFilter : "", type: fileTypeFilter !== "all" ? fileTypeFilter : "" }],
-    enabled: searchQuery.length > 0 || (categoryFilter.length > 0 && categoryFilter !== "all") || (fileTypeFilter.length > 0 && fileTypeFilter !== "all"),
-  });
+    loadFiles();
+    
+    // Listen for storage changes (e.g., when files are uploaded)
+    const handleStorageChange = () => loadFiles();
+    window.addEventListener('storage', handleStorageChange);
+    
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
 
-  const displayFiles = searchQuery || (categoryFilter && categoryFilter !== "all") || (fileTypeFilter && fileTypeFilter !== "all") ? searchResults : files;
+  const getFilteredFiles = () => {
+    if (!searchQuery && (!categoryFilter || categoryFilter === "all") && (!fileTypeFilter || fileTypeFilter === "all")) {
+      return files;
+    }
+
+    return fileStorage.searchFiles(
+      searchQuery,
+      categoryFilter !== "all" ? categoryFilter : undefined,
+      fileTypeFilter !== "all" ? fileTypeFilter : undefined
+    );
+  };
+
+  const displayFiles = getFilteredFiles();
 
   const getFileCounts = () => {
     const counts = {
@@ -34,7 +60,7 @@ export default function Home() {
       sessions: 0,
     };
 
-    files.forEach((file: File) => {
+    files.forEach((file: FileData) => {
       if (file.category in counts) {
         counts[file.category as keyof typeof counts]++;
       }
@@ -201,7 +227,7 @@ export default function Home() {
           {/* File Grid */}
           {displayFiles.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {displayFiles.map((file: File) => (
+              {displayFiles.map((file: FileData) => (
                 <FileCard 
                   key={file.id}
                   file={file}

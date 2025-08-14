@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
+import { fileStorage } from "@/lib/fileStorage";
 
 interface UploadModalProps {
   isOpen: boolean;
@@ -28,13 +28,6 @@ export default function UploadModal({ isOpen, onClose }: UploadModalProps) {
 
   const uploadMutation = useMutation({
     mutationFn: async () => {
-      const formData = new FormData();
-      formData.append('category', category);
-      
-      selectedFiles.forEach((file) => {
-        formData.append('files', file);
-      });
-
       // Simulate progress for demo purposes
       const progressInterval = setInterval(() => {
         setUploadProgress(prev => {
@@ -46,18 +39,23 @@ export default function UploadModal({ isOpen, onClose }: UploadModalProps) {
         });
       }, 200);
 
-      const response = await apiRequest('POST', '/api/files/upload', formData);
-      clearInterval(progressInterval);
-      setUploadProgress(100);
-      
-      return response.json();
+      try {
+        const result = await fileStorage.uploadFiles(selectedFiles, category);
+        clearInterval(progressInterval);
+        setUploadProgress(100);
+        return result;
+      } catch (error) {
+        clearInterval(progressInterval);
+        throw error;
+      }
     },
     onSuccess: () => {
       toast({
         title: "Success",
         description: "Files uploaded successfully!",
       });
-      queryClient.invalidateQueries({ queryKey: ['/api/files'] });
+      // Trigger a storage event to refresh file lists across components
+      window.dispatchEvent(new Event('storage'));
       handleClose();
     },
     onError: (error: Error) => {
