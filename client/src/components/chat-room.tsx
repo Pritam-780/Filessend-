@@ -480,48 +480,48 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
     <div className="fixed inset-0 z-50">
       <div className="h-screen w-screen bg-gradient-to-br from-slate-900 via-blue-900 to-purple-900 flex flex-col">
         {/* Top Header */}
-        <div className="p-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg">
+        <div className="p-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg">
           <div className="flex justify-between items-center">
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={handleClose}
-                className="p-2 text-white hover:bg-white hover:bg-opacity-20"
+                className="p-1 text-white hover:bg-white hover:bg-opacity-20"
                 data-testid="button-back-home"
               >
-                <ArrowLeft className="h-5 w-5" />
+                <ArrowLeft className="h-4 w-4" />
               </Button>
-              <MessageCircle className="h-6 w-6" />
-              <h3 className="text-lg font-bold bg-gradient-to-r from-green-400 via-blue-400 to-purple-400 bg-clip-text text-transparent animate-pulse">Chat Room</h3>
+              <MessageCircle className="h-5 w-5" />
+              <h3 className="text-sm sm:text-lg font-bold bg-gradient-to-r from-green-400 via-blue-400 to-purple-400 bg-clip-text text-transparent animate-pulse">Chat Room</h3>
               {isAuthenticated && (
-                <div className="flex items-center gap-2 bg-white bg-opacity-20 rounded-full px-3 py-1">
-                  <Users className="h-4 w-4" />
-                  <span className="text-sm font-medium">{userCount} online</span>
+                <div className="flex items-center gap-1 bg-white bg-opacity-20 rounded-full px-2 py-1">
+                  <Users className="h-3 w-3" />
+                  <span className="text-xs font-medium">{userCount}</span>
                 </div>
               )}
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1">
               {isAuthenticated && (
                 <>
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={() => setShowFileBrowser(!showFileBrowser)}
-                    className="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded-md text-sm"
+                    className="bg-green-500 hover:bg-green-600 text-white px-2 py-1 rounded-md text-xs"
                     data-testid="button-toggle-files"
                   >
-                    <Folder className="h-4 w-4 mr-1" />
+                    <Folder className="h-3 w-3 mr-1" />
                     Files
                   </Button>
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={() => setShowDeleteAllModal(true)}
-                    className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-md text-sm"
+                    className="bg-red-500 hover:bg-red-600 text-white px-2 py-1 rounded-md text-xs"
                   >
-                    <Trash2 className="h-4 w-4 mr-1" />
-                    Delete All
+                    <Trash2 className="h-3 w-3 mr-1" />
+                    Clear
                   </Button>
                 </>
               )}
@@ -529,10 +529,10 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
                 variant="ghost"
                 size="sm"
                 onClick={handleClose}
-                className="p-2 text-white hover:bg-white hover:bg-opacity-20"
+                className="p-1 text-white hover:bg-white hover:bg-opacity-20"
                 data-testid="button-close-chat"
               >
-                <X className="h-5 w-5" />
+                <X className="h-4 w-4" />
               </Button>
             </div>
           </div>
@@ -543,12 +543,12 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
 
           {!isAuthenticated ? (
             /* Login Form */
-            <div className="flex-1 flex items-center justify-center p-8">
-              <div className="bg-white rounded-lg shadow-lg p-8 w-full max-w-md border border-blue-200">
+            <div className="flex-1 flex items-center justify-center p-4">
+              <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-sm border border-blue-200">
                 <div className="text-center mb-6">
-                  <Lock className="h-12 w-12 text-blue-600 mx-auto mb-3" />
-                  <h4 className="text-xl font-bold text-gray-800 mb-2">Join Chat Room</h4>
-                  <p className="text-gray-600">Enter your details to join the conversation</p>
+                  <Lock className="h-8 w-8 text-blue-600 mx-auto mb-2" />
+                  <h4 className="text-lg font-bold text-gray-800 mb-2">Join Chat Room</h4>
+                  <p className="text-sm text-gray-600">Enter your details to join</p>
                 </div>
 
                 <form onSubmit={handleJoinChat} className="space-y-4">
@@ -605,7 +605,7 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
             <>
               {/* File Browser Sidebar */}
               {showFileBrowser && (
-                <div className="w-80 bg-gray-800 text-white border-r border-gray-700 flex flex-col">
+                <div className="w-64 sm:w-80 bg-gray-800 text-white border-r border-gray-700 flex flex-col">
                   <div className="p-4 border-b border-gray-700">
                     <h3 className="text-lg font-bold mb-3 text-center">📁 File Browser</h3>
                     
