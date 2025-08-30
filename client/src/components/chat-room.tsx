@@ -1,8 +1,9 @@
 
 import { useState, useEffect, useRef } from "react";
-import { X, Send, Users, MessageCircle, Lock } from "lucide-react";
+import { X, Send, Users, MessageCircle, Lock, Trash2, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { io, Socket } from "socket.io-client";
 
@@ -27,6 +28,10 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [userCount, setUserCount] = useState(0);
   const [isConnecting, setIsConnecting] = useState(false);
+  const [hoveredMessage, setHoveredMessage] = useState<string | null>(null);
+  const [showDeleteAllModal, setShowDeleteAllModal] = useState(false);
+  const [deleteAllPassword, setDeleteAllPassword] = useState("");
+  const [isDeletingAll, setIsDeletingAll] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
@@ -76,6 +81,19 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
 
       newSocket.on('user-count', (count: number) => {
         setUserCount(count);
+      });
+
+      newSocket.on('message-deleted', (messageId: string) => {
+        setMessages(prev => prev.filter(msg => msg.id !== messageId));
+      });
+
+      newSocket.on('all-messages-deleted', () => {
+        setMessages([]);
+        toast({
+          title: "All Messages Deleted",
+          description: "All chat messages have been cleared",
+          className: "bg-gradient-to-r from-red-50 to-pink-50 border-red-200",
+        });
       });
 
       newSocket.on('auth-error', (error: string) => {
@@ -164,6 +182,36 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
     setCurrentMessage("");
   };
 
+  const handleDeleteMessage = (messageId: string) => {
+    if (!socket || !isAuthenticated) return;
+    
+    socket.emit('delete-message', { messageId });
+  };
+
+  const handleDeleteAllMessages = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (deleteAllPassword !== "Ak47") {
+      toast({
+        title: "Access Denied",
+        description: "Incorrect password. Please try again.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsDeletingAll(true);
+    
+    setTimeout(() => {
+      if (socket && isAuthenticated) {
+        socket.emit('delete-all-messages');
+      }
+      setIsDeletingAll(false);
+      setDeleteAllPassword("");
+      setShowDeleteAllModal(false);
+    }, 500);
+  };
+
   const formatTime = (timestamp: number) => {
     return new Date(timestamp).toLocaleTimeString([], { 
       hour: '2-digit', 
@@ -190,7 +238,7 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
   return (
     <div className="fixed inset-0 z-50">
       <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4">
-        <div className="bg-gradient-to-br from-blue-50 via-white to-purple-50 rounded-xl shadow-2xl w-full max-w-4xl h-[80vh] border-2 border-blue-200 flex flex-col">
+        <div className="bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 rounded-xl shadow-2xl w-full max-w-4xl h-[80vh] border-2 border-indigo-300 flex flex-col">
           {/* Header */}
           <div className="p-4 border-b border-blue-200 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-t-xl">
             <div className="flex justify-between items-center">
@@ -204,14 +252,27 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
                   </div>
                 )}
               </div>
-              <Button 
-                variant="ghost"
-                size="sm"
-                onClick={handleClose}
-                className="p-2 text-white hover:bg-white hover:bg-opacity-20"
-              >
-                <X className="h-5 w-5" />
-              </Button>
+              <div className="flex items-center gap-2">
+                {isAuthenticated && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowDeleteAllModal(true)}
+                    className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-md text-sm"
+                  >
+                    <Trash2 className="h-4 w-4 mr-1" />
+                    Delete All
+                  </Button>
+                )}
+                <Button 
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleClose}
+                  className="p-2 text-white hover:bg-white hover:bg-opacity-20"
+                >
+                  <X className="h-5 w-5" />
+                </Button>
+              </div>
             </div>
           </div>
 
@@ -278,7 +339,7 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
             /* Chat Interface */
             <>
               {/* Messages */}
-              <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gradient-to-b from-gray-50 to-white">
+              <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gradient-to-b from-blue-50 via-indigo-50 to-purple-50">
                 {messages.length === 0 ? (
                   <div className="text-center text-gray-500 mt-8">
                     <MessageCircle className="h-12 w-12 mx-auto mb-3 opacity-50" />
@@ -288,28 +349,43 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
                   messages.map((msg) => (
                     <div
                       key={msg.id}
-                      className={`flex ${msg.username === username ? 'justify-end' : 'justify-start'}`}
+                      className={`flex ${msg.username === username ? 'justify-end' : 'justify-start'} group`}
+                      onMouseEnter={() => setHoveredMessage(msg.id)}
+                      onMouseLeave={() => setHoveredMessage(null)}
                     >
-                      <div
-                        className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
-                          msg.username === username
-                            ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white'
-                            : 'bg-white border border-gray-200 text-gray-800 shadow-sm'
-                        }`}
-                      >
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className={`text-xs font-medium ${
-                            msg.username === username ? 'text-blue-100' : 'text-blue-600'
-                          }`}>
-                            {msg.username}
-                          </span>
-                          <span className={`text-xs ${
-                            msg.username === username ? 'text-blue-200' : 'text-gray-500'
-                          }`}>
-                            {formatTime(msg.timestamp)}
-                          </span>
+                      <div className="relative">
+                        <div
+                          className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg cursor-pointer transition-all ${
+                            msg.username === username
+                              ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white'
+                              : 'bg-white border border-gray-200 text-gray-800 shadow-sm'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className={`text-xs font-medium ${
+                              msg.username === username ? 'text-blue-100' : 'text-blue-600'
+                            }`}>
+                              {msg.username}
+                            </span>
+                            <span className={`text-xs ${
+                              msg.username === username ? 'text-blue-200' : 'text-gray-500'
+                            }`}>
+                              {formatTime(msg.timestamp)}
+                            </span>
+                          </div>
+                          <p className="text-sm break-words">{msg.message}</p>
                         </div>
-                        <p className="text-sm break-words">{msg.message}</p>
+                        
+                        {/* Delete button - appears on hover */}
+                        {hoveredMessage === msg.id && (
+                          <Button
+                            onClick={() => handleDeleteMessage(msg.id)}
+                            className="absolute -top-2 -right-2 w-6 h-6 p-0 bg-red-500 hover:bg-red-600 text-white rounded-full shadow-lg opacity-90 hover:opacity-100 transition-all"
+                            size="sm"
+                          >
+                            <X className="h-3 w-3" />
+                          </Button>
+                        )}
                       </div>
                     </div>
                   ))
@@ -318,7 +394,7 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
               </div>
 
               {/* Message Input */}
-              <div className="p-4 border-t border-gray-200 bg-white rounded-b-xl">
+              <div className="p-4 border-t border-indigo-200 bg-gradient-to-r from-white to-blue-50 rounded-b-xl">
                 <form onSubmit={handleSendMessage} className="flex gap-3">
                   <Input
                     type="text"
@@ -340,6 +416,80 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
               </div>
             </>
           )}
+
+          {/* Delete All Messages Modal */}
+          <Dialog open={showDeleteAllModal} onOpenChange={setShowDeleteAllModal}>
+            <DialogContent className="sm:max-w-[400px] bg-gradient-to-br from-red-50 via-white to-orange-50 border-2 border-red-200 shadow-2xl">
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2 text-red-700 text-xl font-bold">
+                  <AlertTriangle className="h-6 w-6" />
+                  Delete All Messages
+                </DialogTitle>
+                <DialogDescription className="text-gray-700 mt-2">
+                  This action will permanently delete all messages in the chat room.
+                </DialogDescription>
+              </DialogHeader>
+              
+              <div className="space-y-4 mt-4">
+                <div className="bg-red-100 border border-red-300 rounded-lg p-3">
+                  <p className="text-sm text-red-800 font-medium">
+                    Warning: This will delete all {messages.length} messages in the chat room.
+                  </p>
+                </div>
+                
+                <form onSubmit={handleDeleteAllMessages} className="space-y-4">
+                  <div className="space-y-2">
+                    <label htmlFor="deletePassword" className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                      <Lock className="h-4 w-4" />
+                      Enter Password
+                    </label>
+                    <Input
+                      id="deletePassword"
+                      type="password"
+                      value={deleteAllPassword}
+                      onChange={(e) => setDeleteAllPassword(e.target.value)}
+                      placeholder="Enter password to confirm"
+                      className="border-red-300 focus:border-red-500 focus:ring-red-500"
+                      disabled={isDeletingAll}
+                      required
+                    />
+                  </div>
+                  
+                  <div className="flex gap-3 pt-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => {
+                        setShowDeleteAllModal(false);
+                        setDeleteAllPassword("");
+                      }}
+                      className="flex-1 border-gray-300 hover:bg-gray-50"
+                      disabled={isDeletingAll}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      type="submit"
+                      className="flex-1 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white font-medium shadow-lg"
+                      disabled={isDeletingAll || !deleteAllPassword}
+                    >
+                      {isDeletingAll ? (
+                        <div className="flex items-center gap-2">
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                          Deleting...
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          <Trash2 className="h-4 w-4" />
+                          Delete All
+                        </div>
+                      )}
+                    </Button>
+                  </div>
+                </form>
+              </div>
+            </DialogContent>
+          </Dialog>
         </div>
       </div>
     </div>

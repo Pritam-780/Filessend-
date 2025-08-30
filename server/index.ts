@@ -91,6 +91,40 @@ io.on('connection', (socket) => {
     io.to('main-chat').emit('new-message', message);
   });
 
+  socket.on('delete-message', (data) => {
+    const user = chatUsers.get(socket.id);
+    if (!user) {
+      socket.emit('auth-error', 'Not authenticated');
+      return;
+    }
+
+    const { messageId } = data;
+    
+    // Remove message from history
+    messageHistory = messageHistory.filter(msg => msg.id !== messageId);
+    
+    // Broadcast deletion to all users
+    io.to('main-chat').emit('message-deleted', messageId);
+    
+    log(`Message ${messageId} deleted by ${user.username}`);
+  });
+
+  socket.on('delete-all-messages', () => {
+    const user = chatUsers.get(socket.id);
+    if (!user) {
+      socket.emit('auth-error', 'Not authenticated');
+      return;
+    }
+
+    // Clear all messages
+    messageHistory = [];
+    
+    // Broadcast to all users that all messages were deleted
+    io.to('main-chat').emit('all-messages-deleted');
+    
+    log(`All messages deleted by ${user.username}`);
+  });
+
   socket.on('disconnect', () => {
     const user = chatUsers.get(socket.id);
     if (user) {
