@@ -397,14 +397,25 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
       });
 
       if (response.ok) {
+        // Reload files in chat room
         loadFiles();
+        
+        // Trigger storage event to refresh file lists across all components
+        window.dispatchEvent(new Event('storage'));
+        
+        // Also trigger a custom event for file deletion
+        window.dispatchEvent(new CustomEvent('file-deleted', { 
+          detail: { fileId, fileName } 
+        }));
+        
         toast({
-          title: "File Deleted",
-          description: `"${fileName}" has been permanently deleted.`,
+          title: "File Completely Deleted",
+          description: `"${fileName}" has been permanently removed from everywhere.`,
           className: "bg-green-50 border-green-200",
         });
       } else {
-        throw new Error('Failed to delete file');
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to delete file');
       }
     } catch (error) {
       toast({

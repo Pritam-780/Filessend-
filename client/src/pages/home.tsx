@@ -28,6 +28,23 @@ export default function Home() {
 
   useEffect(() => {
     loadFiles();
+
+    const handleStorageChange = () => {
+      loadFiles();
+    };
+
+    const handleFileDeleted = (event: CustomEvent) => {
+      console.log('File deleted event received:', event.detail);
+      loadFiles(); // Refresh the file list immediately
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('file-deleted', handleFileDeleted as EventListener);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('file-deleted', handleFileDeleted as EventListener);
+    };
   }, []);
 
   const loadFiles = () => {
@@ -93,9 +110,9 @@ export default function Home() {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50 animate-fadeIn">
-        <Header 
-          onSearchChange={setSearchQuery} 
-          onChatOpen={() => setShowChatRoom(true)} 
+        <Header
+          onSearchChange={setSearchQuery}
+          onChatOpen={() => setShowChatRoom(true)}
         />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="flex items-center justify-center h-64">
@@ -117,9 +134,9 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-gray-50 animate-fadeIn">
-      <Header 
-        onSearchChange={setSearchQuery} 
-        onChatOpen={() => setShowChatRoom(true)} 
+      <Header
+        onSearchChange={setSearchQuery}
+        onChatOpen={() => setShowChatRoom(true)}
       />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -131,7 +148,7 @@ export default function Home() {
           <p className="text-lg md:text-xl text-gray-700 mb-8 max-w-3xl mx-auto font-medium">
 Your colorful digital library for organizing and accessing academic books, relaxing reads, and professional resources with vibrant style.
           </p>
-          <Button 
+          <Button
             onClick={() => setShowUploadModal(true)}
             className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white px-8 py-3 rounded-xl text-lg font-bold hover:from-blue-700 hover:via-indigo-700 hover:to-purple-700 shadow-2xl transform hover:scale-105 transition-all duration-300"
           >
@@ -221,6 +238,8 @@ Your colorful digital library for organizing and accessing academic books, relax
         onPasswordSubmit={(password) => {
           if (deleteTarget && password === "Ak47") {
             fileStorage.deleteFile(deleteTarget.id);
+            // Dispatch a custom event to notify other parts of the app about the deletion
+            window.dispatchEvent(new CustomEvent('file-deleted', { detail: { fileId: deleteTarget.id } }));
             handleFileDelete();
             setDeleteTarget(null);
             toast({
@@ -240,7 +259,7 @@ Your colorful digital library for organizing and accessing academic books, relax
 
       {/* Chat Room Modal */}
       {showChatRoom && (
-        <ChatRoom 
+        <ChatRoom
           isOpen={showChatRoom}
           onClose={() => setShowChatRoom(false)}
         />

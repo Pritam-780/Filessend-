@@ -60,9 +60,19 @@ export default function Category() {
 
     // Listen for storage changes
     const handleStorageChange = () => loadFiles();
-    window.addEventListener('storage', handleStorageChange);
 
-    return () => window.removeEventListener('storage', handleStorageChange);
+    const handleFileDeleted = (event: CustomEvent) => {
+      console.log('File deleted event received in category:', event.detail);
+      loadFiles(); // Refresh the file list immediately
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('file-deleted', handleFileDeleted as EventListener);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('file-deleted', handleFileDeleted as EventListener);
+    };
   }, [category]);
 
   const getFilteredFiles = () => {

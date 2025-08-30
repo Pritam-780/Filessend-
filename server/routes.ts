@@ -207,23 +207,37 @@ export async function registerRoutes(app: Express, io?: SocketIOServer): Promise
 
       const filePath = path.join(uploadDir, file.filename);
       
-      // Delete file from database
-      await storage.deleteFile(id);
+      // Delete file from database storage first
+      const deletedFromStorage = await storage.deleteFile(id);
+      
+      if (!deletedFromStorage) {
+        return res.status(500).json({ message: "Failed to delete from storage" });
+      }
       
       // Delete physical file from disk
       if (fs.existsSync(filePath)) {
-        fs.unlinkSync(filePath);
+        try {
+          fs.unlinkSync(filePath);
+          console.log(`Physical file deleted: ${filePath}`);
+        } catch (fsError) {
+          console.error('Failed to delete physical file:', fsError);
+        }
       }
 
-      // Broadcast file deletion to all chat users
+      // Broadcast file deletion to all connected clients (chat users and website users)
       if (io) {
-        io.to('main-chat').emit('file-deleted', { 
+        io.emit('file-deleted', { 
           fileId: id, 
           filename: file.originalName 
         });
+        console.log(`File deletion broadcasted: ${file.originalName}`);
       }
 
-      res.json({ message: "File deleted successfully" });
+      res.json({ 
+        message: "File deleted successfully",
+        fileId: id,
+        filename: file.originalName
+      });
     } catch (error) {
       console.error('Delete error:', error);
       res.status(500).json({ message: "Failed to delete file" });
