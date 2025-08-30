@@ -203,20 +203,18 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
       });
 
       newSocket.on('file-deleted', (data) => {
-        // Only reload files if we're still authenticated and connected
-        if (isAuthenticated && newSocket.connected) {
-          loadFiles();
-          toast({
-            title: "File Deleted",
-            description: `${data.filename} was permanently deleted`,
-            className: "bg-red-50 border-red-200",
-          });
-        }
+        // Reload files when any file is deleted
+        loadFiles();
+        toast({
+          title: "File Deleted",
+          description: `${data.filename} was permanently deleted`,
+          className: "bg-red-50 border-red-200",
+        });
       });
 
       newSocket.on('disconnect', (reason) => {
-        // Only show logout if it's an unexpected disconnect
-        if (reason !== 'io client disconnect') {
+        // Only show logout for transport errors or server disconnects
+        if (reason === 'transport error' || reason === 'server namespace disconnect') {
           setIsAuthenticated(false);
           toast({
             title: "Disconnected",
@@ -408,10 +406,8 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
       });
 
       if (response.ok) {
-        // Reload files in chat room only if still authenticated
-        if (isAuthenticated && socket?.connected) {
-          loadFiles();
-        }
+        // Reload files in chat room without checking authentication to prevent logout
+        loadFiles();
         
         // Trigger storage event to refresh file lists across all components
         window.dispatchEvent(new Event('storage'));
@@ -427,7 +423,7 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
           className: "bg-green-50 border-green-200",
         });
       } else {
-        const errorData = await response.json();
+        const errorData = await response.json().catch(() => ({ message: 'Failed to delete file' }));
         throw new Error(errorData.message || 'Failed to delete file');
       }
     } catch (error) {
@@ -850,7 +846,7 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
                                 
                                 {/* Action buttons */}
                                 {hoveredMessage === msg.id && (
-                                  <div className={`absolute top-0 flex gap-1 ${isMyMessage ? '-left-8' : '-right-8'}`}>
+                                  <div className={`absolute top-0 flex gap-1 ${isMyMessage ? '-left-16' : '-right-16'}`}>
                                     <Button
                                       onClick={() => handleReplyToMessage(msg)}
                                       className="w-8 h-8 p-0 bg-gray-500 hover:bg-gray-600 text-white rounded-full shadow-lg"
@@ -859,6 +855,16 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
                                     >
                                       <Reply className="h-4 w-4" />
                                     </Button>
+                                    {isMyMessage && (
+                                      <Button
+                                        onClick={() => handleDeleteMessage(msg.id)}
+                                        className="w-8 h-8 p-0 bg-red-500 hover:bg-red-600 text-white rounded-full shadow-lg"
+                                        size="sm"
+                                        data-testid={`button-delete-${msg.id}`}
+                                      >
+                                        <Trash2 className="h-3 w-3" />
+                                      </Button>
+                                    )}
                                   </div>
                                 )}
                               </div>

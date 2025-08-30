@@ -138,6 +138,19 @@ io.on('connection', (socket) => {
 
     const { messageId } = data;
     
+    // Find the message to check ownership
+    const messageToDelete = messageHistory.find(msg => msg.id === messageId);
+    if (!messageToDelete) {
+      socket.emit('auth-error', 'Message not found');
+      return;
+    }
+
+    // Only allow users to delete their own messages
+    if (messageToDelete.username !== user.username) {
+      socket.emit('auth-error', 'You can only delete your own messages');
+      return;
+    }
+    
     // Remove message from history
     messageHistory = messageHistory.filter(msg => msg.id !== messageId);
     
