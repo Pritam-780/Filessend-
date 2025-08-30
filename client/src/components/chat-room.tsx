@@ -478,7 +478,7 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
 
   return (
     <div className="fixed inset-0 z-50">
-      <div className="h-[80vh] w-[90vw] max-w-4xl mx-auto mt-[10vh] bg-gradient-to-br from-slate-900 via-blue-900 to-purple-900 flex flex-col rounded-2xl shadow-2xl">
+      <div className="h-screen w-screen bg-gradient-to-br from-slate-900 via-blue-900 to-purple-900 flex flex-col">
         {/* Top Header */}
         <div className="p-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg">
           <div className="flex justify-between items-center">
@@ -493,7 +493,7 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
                 <ArrowLeft className="h-5 w-5" />
               </Button>
               <MessageCircle className="h-6 w-6" />
-              <h3 className="text-lg font-bold bg-gradient-to-r from-green-400 via-blue-400 to-purple-400 bg-clip-text text-transparent animate-pulse">Welcome to online library</h3>
+              <h3 className="text-lg font-bold bg-gradient-to-r from-green-400 via-blue-400 to-purple-400 bg-clip-text text-transparent animate-pulse">Chat Room</h3>
               {isAuthenticated && (
                 <div className="flex items-center gap-2 bg-white bg-opacity-20 rounded-full px-3 py-1">
                   <Users className="h-4 w-4" />

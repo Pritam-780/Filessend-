@@ -63,6 +63,13 @@ io.on('connection', (socket) => {
       return;
     }
 
+    // Check if username is already taken
+    const existingUser = Array.from(chatUsers.values()).find(user => user.username.toLowerCase() === username.toLowerCase());
+    if (existingUser) {
+      socket.emit('auth-error', 'Username already taken. Please choose a different name.');
+      return;
+    }
+
     chatUsers.set(socket.id, { username, joinedAt: Date.now() });
     socket.join('main-chat');
     
