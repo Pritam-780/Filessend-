@@ -388,6 +388,46 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
 
   
 
+  const handleDeleteFile = async (fileId: string, fileName: string) => {
+    try {
+      const response = await fetch(`/api/files/${fileId}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ password: 'Ak47' })
+      });
+
+      if (response.ok) {
+        // Reload files in chat room
+        loadFiles();
+        
+        // Trigger storage event to refresh file lists across all components
+        window.dispatchEvent(new Event('storage'));
+        
+        // Also trigger a custom event for file deletion
+        window.dispatchEvent(new CustomEvent('file-deleted', { 
+          detail: { fileId, fileName } 
+        }));
+        
+        toast({
+          title: "File Completely Deleted",
+          description: `"${fileName}" has been permanently removed from everywhere.`,
+          className: "bg-green-50 border-green-200",
+        });
+      } else {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to delete file');
+      }
+    } catch (error) {
+      toast({
+        title: "Delete Error",
+        description: "Failed to delete file. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
+
   const renderFileAttachment = (attachment: any) => {
     const file = files.find(f => f.id === attachment.id);
     if (!file) return null;
@@ -406,6 +446,17 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
           </div>
           <div className="flex items-center justify-between mt-2">
             <p className="text-xs opacity-75 flex-1 truncate">{attachment.originalName}</p>
+            <Button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleDeleteFile(attachment.id, attachment.originalName);
+              }}
+              className="w-6 h-6 p-0 bg-red-500 hover:bg-red-600 text-white rounded-full shadow-lg ml-2"
+              size="sm"
+              title="Delete file permanently"
+            >
+              <Trash2 className="h-3 w-3" />
+            </Button>
           </div>
         </div>
       );
@@ -427,6 +478,17 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
               title="Preview file"
             >
               <Eye className="h-4 w-4" />
+            </Button>
+            <Button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleDeleteFile(attachment.id, attachment.originalName);
+              }}
+              className="w-8 h-8 p-0 bg-red-500 hover:bg-red-600 text-white"
+              size="sm"
+              title="Delete file permanently"
+            >
+              <Trash2 className="h-4 w-4" />
             </Button>
           </div>
         </div>
