@@ -87,9 +87,12 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
         const allFiles = await response.json();
         setFiles(allFiles);
         filterFiles(allFiles, fileSearchQuery, selectedCategory);
+      } else {
+        console.error('Failed to load files:', response.status);
       }
     } catch (error) {
       console.error('Failed to load files:', error);
+      // Don't show error toast for file loading failures to avoid user confusion
     }
   };
 
@@ -200,21 +203,27 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
       });
 
       newSocket.on('file-deleted', (data) => {
-        loadFiles();
-        toast({
-          title: "File Deleted",
-          description: `${data.filename} was permanently deleted`,
-          className: "bg-red-50 border-red-200",
-        });
+        // Only reload files if we're still authenticated and connected
+        if (isAuthenticated && newSocket.connected) {
+          loadFiles();
+          toast({
+            title: "File Deleted",
+            description: `${data.filename} was permanently deleted`,
+            className: "bg-red-50 border-red-200",
+          });
+        }
       });
 
-      newSocket.on('disconnect', () => {
-        setIsAuthenticated(false);
-        toast({
-          title: "Disconnected",
-          description: "You have been disconnected from the chat",
-          variant: "destructive",
-        });
+      newSocket.on('disconnect', (reason) => {
+        // Only show logout if it's an unexpected disconnect
+        if (reason !== 'io client disconnect') {
+          setIsAuthenticated(false);
+          toast({
+            title: "Disconnected",
+            description: "You have been disconnected from the chat",
+            variant: "destructive",
+          });
+        }
       });
 
       setSocket(newSocket);
@@ -399,8 +408,10 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
       });
 
       if (response.ok) {
-        // Reload files in chat room
-        loadFiles();
+        // Reload files in chat room only if still authenticated
+        if (isAuthenticated && socket?.connected) {
+          loadFiles();
+        }
         
         // Trigger storage event to refresh file lists across all components
         window.dispatchEvent(new Event('storage'));
@@ -420,6 +431,7 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
         throw new Error(errorData.message || 'Failed to delete file');
       }
     } catch (error) {
+      console.error('Delete file error:', error);
       toast({
         title: "Delete Error",
         description: "Failed to delete file. Please try again.",
