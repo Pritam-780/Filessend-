@@ -86,10 +86,17 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
   };
 
   // Load files and filter them
-  const loadFiles = () => {
-    const allFiles = fileStorage.getAllFiles();
-    setFiles(allFiles);
-    filterFiles(allFiles, fileSearchQuery, selectedCategory);
+  const loadFiles = async () => {
+    try {
+      const response = await fetch('/api/files');
+      if (response.ok) {
+        const allFiles = await response.json();
+        setFiles(allFiles);
+        filterFiles(allFiles, fileSearchQuery, selectedCategory);
+      }
+    } catch (error) {
+      console.error('Failed to load files:', error);
+    }
   };
 
   const filterFiles = (fileList: FileData[], searchQuery: string, category: string) => {
@@ -121,12 +128,6 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
 
   useEffect(() => {
     loadFiles();
-    
-    // Listen for storage changes
-    const handleStorageChange = () => loadFiles();
-    window.addEventListener('storage', handleStorageChange);
-    
-    return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
   useEffect(() => {
@@ -193,6 +194,16 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
           variant: "destructive",
         });
         setIsConnecting(false);
+      });
+
+      newSocket.on('file-uploaded', (fileData) => {
+        // Refresh file list when someone uploads a file
+        loadFiles();
+        toast({
+          title: "New File",
+          description: `${fileData.originalName} was uploaded`,
+          className: "bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200",
+        });
       });
 
       newSocket.on('disconnect', () => {
@@ -282,16 +293,30 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
 
       // Handle file attachment
       if (selectedFile) {
-        const uploadedFile = await fileStorage.uploadFiles([selectedFile], 'sessions');
-        if (uploadedFile && uploadedFile.length > 0) {
-          messageData.attachment = {
-            id: uploadedFile[0].id,
-            originalName: uploadedFile[0].originalName,
-            mimeType: uploadedFile[0].mimeType,
-            size: uploadedFile[0].size
-          };
-          // Refresh file list
-          loadFiles();
+        const formData = new FormData();
+        formData.append('files', selectedFile);
+        formData.append('category', 'sessions');
+        
+        const response = await fetch('/api/files/upload', {
+          method: 'POST',
+          body: formData
+        });
+        
+        if (response.ok) {
+          const uploadedFiles = await response.json();
+          if (uploadedFiles && uploadedFiles.length > 0) {
+            messageData.attachment = {
+              id: uploadedFiles[0].id,
+              originalName: uploadedFiles[0].originalName,
+              mimeType: uploadedFiles[0].mimeType,
+              size: uploadedFiles[0].size
+            };
+            // Refresh file list
+            loadFiles();
+            
+          }
+        } else {
+          throw new Error('Failed to upload file');
         }
       }
 
@@ -366,11 +391,11 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
   };
 
   const renderFileAttachment = (attachment: any) => {
-    const file = fileStorage.getFile(attachment.id);
+    const file = files.find(f => f.id === attachment.id);
     if (!file) return null;
 
     if (attachment.mimeType.startsWith('image/')) {
-      const imageUrl = fileStorage.getFileUrl(file);
+      const imageUrl = `/api/files/${attachment.id}/download`;
       return (
         <div className="mt-2 max-w-xs">
           <img 
@@ -378,9 +403,6 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
             alt={attachment.originalName}
             className="rounded-lg max-w-full h-auto cursor-pointer hover:opacity-90 transition-opacity"
             onClick={() => setPreviewFile(file)}
-            onLoad={() => {
-              setTimeout(() => URL.revokeObjectURL(imageUrl), 1000);
-            }}
           />
           <p className="text-xs opacity-75 mt-1">{attachment.originalName}</p>
         </div>
@@ -654,14 +676,12 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
                             </Button>
                             <Button
                               onClick={() => {
-                                const url = fileStorage.getFileUrl(file);
                                 const link = document.createElement('a');
-                                link.href = url;
+                                link.href = `/api/files/${file.id}/download`;
                                 link.download = file.originalName;
                                 document.body.appendChild(link);
                                 link.click();
                                 document.body.removeChild(link);
-                                URL.revokeObjectURL(url);
                               }}
                               className="flex-1 bg-green-600 hover:bg-green-700 text-white text-xs py-1"
                               size="sm"

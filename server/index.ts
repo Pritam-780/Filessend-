@@ -30,6 +30,7 @@ const io = new Server(httpServer, {
 
 // Chat room management
 const chatUsers = new Map();
+
 let messageHistory: Array<{
   id: string;
   username: string;
@@ -155,6 +156,12 @@ io.on('connection', (socket) => {
     log(`All messages deleted by ${user.username}`);
   });
 
+  socket.on('file-uploaded', (fileData) => {
+    // Broadcast file upload to all users in chat
+    socket.to('main-chat').emit('file-uploaded', fileData);
+    log(`File ${fileData.originalName} uploaded and broadcast to chat`);
+  });
+
   socket.on('disconnect', () => {
     const user = chatUsers.get(socket.id);
     if (user) {
@@ -197,7 +204,7 @@ app.use((req, res, next) => {
 });
 
 (async () => {
-  await registerRoutes(app);
+  await registerRoutes(app, io);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;

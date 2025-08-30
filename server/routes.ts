@@ -4,6 +4,7 @@ import multer from "multer";
 import path from "path";
 import fs from "fs";
 import { insertFileSchema } from "@shared/schema";
+import { Server as SocketIOServer } from "socket.io";
 
 const uploadDir = path.join(process.cwd(), "uploads");
 
@@ -37,7 +38,7 @@ const upload = multer({
   }
 });
 
-export async function registerRoutes(app: Express): Promise<void> {
+export async function registerRoutes(app: Express, io?: SocketIOServer): Promise<void> {
   
   // Get all files
   app.get("/api/files", async (req, res) => {
@@ -110,12 +111,14 @@ export async function registerRoutes(app: Express): Promise<void> {
 
         const savedFile = await storage.createFile(fileData);
         uploadedFiles.push(savedFile);
+        
+        // Broadcast file upload to all chat users
+        if (io) {
+          io.to('main-chat').emit('file-uploaded', savedFile);
+        }
       }
 
-      res.json({ 
-        message: "Files uploaded successfully", 
-        files: uploadedFiles 
-      });
+      res.json(uploadedFiles);
     } catch (error) {
       console.error('Upload error:', error);
       res.status(500).json({ message: "Failed to upload files" });
