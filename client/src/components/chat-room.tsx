@@ -1,6 +1,6 @@
 
 import { useState, useEffect, useRef } from "react";
-import { X, Send, Users, MessageCircle, Lock, Trash2, AlertTriangle, Reply, FileText, Folder, Search, Eye, Download, Filter, Image, FileSpreadsheet } from "lucide-react";
+import { X, Send, Users, MessageCircle, Lock, Trash2, AlertTriangle, Reply, FileText, Folder, Search, Eye, Download, Filter, Image, FileSpreadsheet, ArrowLeft, Upload, Paperclip } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -18,6 +18,12 @@ interface ChatMessage {
     id: string;
     username: string;
     message: string;
+  };
+  attachment?: {
+    id: string;
+    originalName: string;
+    mimeType: string;
+    size: number;
   };
 }
 
@@ -46,6 +52,9 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
   const [fileSearchQuery, setFileSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [previewFile, setPreviewFile] = useState<FileData | null>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
@@ -105,19 +114,6 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
     { id: "relaxing", name: "Relaxing", icon: Image },
     { id: "sessions", name: "Sessions", icon: FileSpreadsheet }
   ];
-
-  const getFileIcon = (mimeType: string) => {
-    if (mimeType.startsWith('image/')) {
-      return <Image className="h-4 w-4 text-blue-600" />;
-    }
-    if (mimeType === 'application/pdf') {
-      return <FileText className="h-4 w-4 text-red-600" />;
-    }
-    if (mimeType.includes('excel') || mimeType.includes('spreadsheet')) {
-      return <FileSpreadsheet className="h-4 w-4 text-green-600" />;
-    }
-    return <FileText className="h-4 w-4 text-gray-600" />;
-  };
 
   useEffect(() => {
     scrollToBottom();
@@ -262,29 +258,62 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
     });
   };
 
-  const handleSendMessage = (e: React.FormEvent) => {
+  const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!currentMessage.trim() || !socket || !isAuthenticated) {
+    if ((!currentMessage.trim() && !selectedFile) || !socket || !isAuthenticated) {
       return;
     }
 
-    const messageData: any = {
-      message: currentMessage.trim()
-    };
-
-    if (replyingTo) {
-      messageData.replyTo = {
-        id: replyingTo.id,
-        username: replyingTo.username,
-        message: replyingTo.message
+    setIsUploading(true);
+    
+    try {
+      const messageData: any = {
+        message: currentMessage.trim() || (selectedFile ? `📎 ${selectedFile.name}` : '')
       };
+
+      if (replyingTo) {
+        messageData.replyTo = {
+          id: replyingTo.id,
+          username: replyingTo.username,
+          message: replyingTo.message
+        };
+      }
+
+      // Handle file attachment
+      if (selectedFile) {
+        const uploadedFile = await fileStorage.uploadFiles([selectedFile], 'sessions');
+        if (uploadedFile && uploadedFile.length > 0) {
+          messageData.attachment = {
+            id: uploadedFile[0].id,
+            originalName: uploadedFile[0].originalName,
+            mimeType: uploadedFile[0].mimeType,
+            size: uploadedFile[0].size
+          };
+          // Refresh file list
+          loadFiles();
+        }
+      }
+
+      socket.emit('send-message', messageData);
+
+      setCurrentMessage("");
+      setSelectedFile(null);
+      setReplyingTo(null);
+      
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+      
+    } catch (error) {
+      toast({
+        title: "Upload Error",
+        description: "Failed to upload file. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsUploading(false);
     }
-
-    socket.emit('send-message', messageData);
-
-    setCurrentMessage("");
-    setReplyingTo(null);
   };
 
   const handleDeleteMessage = (messageId: string) => {
@@ -299,6 +328,83 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
 
   const cancelReply = () => {
     setReplyingTo(null);
+  };
+
+  const getFileIcon = (mimeType: string) => {
+    if (mimeType.startsWith('image/')) {
+      return <Image className="h-4 w-4" />;
+    } else if (mimeType.includes('pdf')) {
+      return <FileText className="h-4 w-4 text-red-500" />;
+    } else if (mimeType.includes('spreadsheet') || mimeType.includes('excel')) {
+      return <FileSpreadsheet className="h-4 w-4 text-green-500" />;
+    } else {
+      return <FileText className="h-4 w-4" />;
+    }
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Check file size (max 10MB)
+      if (file.size > 10 * 1024 * 1024) {
+        toast({
+          title: "File Too Large",
+          description: "Please select a file smaller than 10MB.",
+          variant: "destructive"
+        });
+        return;
+      }
+      setSelectedFile(file);
+    }
+  };
+
+  const removeSelectedFile = () => {
+    setSelectedFile(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const renderFileAttachment = (attachment: any) => {
+    const file = fileStorage.getFile(attachment.id);
+    if (!file) return null;
+
+    if (attachment.mimeType.startsWith('image/')) {
+      const imageUrl = fileStorage.getFileUrl(file);
+      return (
+        <div className="mt-2 max-w-xs">
+          <img 
+            src={imageUrl} 
+            alt={attachment.originalName}
+            className="rounded-lg max-w-full h-auto cursor-pointer hover:opacity-90 transition-opacity"
+            onClick={() => setPreviewFile(file)}
+            onLoad={() => {
+              setTimeout(() => URL.revokeObjectURL(imageUrl), 1000);
+            }}
+          />
+          <p className="text-xs opacity-75 mt-1">{attachment.originalName}</p>
+        </div>
+      );
+    }
+    
+    return (
+      <div className="mt-2 p-3 bg-white bg-opacity-20 rounded-lg max-w-xs">
+        <div className="flex items-center gap-2">
+          {getFileIcon(attachment.mimeType)}
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium truncate">{attachment.originalName}</p>
+            <p className="text-xs opacity-75">{(attachment.size / 1024 / 1024).toFixed(2)} MB</p>
+          </div>
+          <Button
+            onClick={() => file && setPreviewFile(file)}
+            className="w-8 h-8 p-0 bg-white bg-opacity-20 hover:bg-white hover:bg-opacity-30"
+            size="sm"
+          >
+            <Eye className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
+    );
   };
 
   const handleDeleteAllMessages = (e: React.FormEvent) => {
@@ -355,6 +461,15 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
         <div className="p-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg">
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-3">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleClose}
+                className="p-2 text-white hover:bg-white hover:bg-opacity-20"
+                data-testid="button-back-home"
+              >
+                <ArrowLeft className="h-5 w-5" />
+              </Button>
               <MessageCircle className="h-6 w-6" />
               <h3 className="text-lg font-bold">AAILAR Chat Room</h3>
               {isAuthenticated && (
@@ -609,6 +724,7 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
                               </span>
                             </div>
                             <p className="text-sm break-words leading-relaxed">{msg.message}</p>
+                            {msg.attachment && renderFileAttachment(msg.attachment)}
                           </div>
                           
                           {/* Action buttons - appears on hover */}
@@ -661,25 +777,80 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
                       <p className="text-sm text-gray-700 italic truncate">{replyingTo.message}</p>
                     </div>
                   )}
+
+                  {/* File Selection Preview */}
+                  {selectedFile && (
+                    <div className="mb-3 p-3 bg-green-50 border border-green-200 rounded-lg">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2 text-green-700">
+                          <Paperclip className="h-4 w-4" />
+                          <span className="text-sm font-medium">File attached</span>
+                        </div>
+                        <Button
+                          onClick={removeSelectedFile}
+                          className="w-5 h-5 p-0 bg-gray-400 hover:bg-gray-500 text-white rounded-full"
+                          size="sm"
+                          data-testid="button-remove-file"
+                        >
+                          <X className="h-3 w-3" />
+                        </Button>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {getFileIcon(selectedFile.type)}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium truncate">{selectedFile.name}</p>
+                          <p className="text-xs text-gray-600">{(selectedFile.size / 1024 / 1024).toFixed(2)} MB</p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                   
                   <form onSubmit={handleSendMessage} className="flex gap-3">
-                    <Input
-                      type="text"
-                      value={currentMessage}
-                      onChange={(e) => setCurrentMessage(e.target.value)}
-                      placeholder={replyingTo ? `Reply to ${replyingTo.username}...` : "Type your message..."}
-                      className="flex-1 border-gray-300 focus:border-blue-500 focus:ring-blue-500 text-base py-3"
-                      maxLength={1000}
-                      disabled={!socket}
-                      data-testid="input-message"
+                    <div className="flex-1 relative">
+                      <Input
+                        type="text"
+                        value={currentMessage}
+                        onChange={(e) => setCurrentMessage(e.target.value)}
+                        placeholder={replyingTo ? `Reply to ${replyingTo.username}...` : selectedFile ? "Add a message (optional)..." : "Type your message..."}
+                        className="w-full border-gray-300 focus:border-blue-500 focus:ring-blue-500 text-base py-3 pr-12"
+                        maxLength={1000}
+                        disabled={!socket || isUploading}
+                        data-testid="input-message"
+                      />
+                    </div>
+                    
+                    {/* Hidden file input */}
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt"
+                      onChange={handleFileSelect}
+                      className="hidden"
+                      data-testid="input-file"
                     />
+                    
+                    {/* File upload button */}
+                    <Button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={!socket || isUploading}
+                      className="bg-green-600 hover:bg-green-700 text-white px-4 py-3"
+                      data-testid="button-upload"
+                    >
+                      <Paperclip className="h-4 w-4" />
+                    </Button>
+                    
                     <Button
                       type="submit"
-                      disabled={!currentMessage.trim() || !socket}
+                      disabled={(!currentMessage.trim() && !selectedFile) || !socket || isUploading}
                       className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-6 py-3"
                       data-testid="button-send"
                     >
-                      <Send className="h-4 w-4" />
+                      {isUploading ? (
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                      ) : (
+                        <Send className="h-4 w-4" />
+                      )}
                     </Button>
                   </form>
                 </div>

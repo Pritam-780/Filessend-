@@ -40,6 +40,12 @@ let messageHistory: Array<{
     username: string;
     message: string;
   };
+  attachment?: {
+    id: string;
+    originalName: string;
+    mimeType: string;
+    size: number;
+  };
 }> = [];
 
 // Keep only last 500 messages in memory
@@ -91,6 +97,16 @@ io.on('connection', (socket) => {
         id: data.replyTo.id,
         username: data.replyTo.username,
         message: data.replyTo.message.substring(0, 100) // Limit reply preview
+      };
+    }
+
+    // Add file attachment if provided
+    if (data.attachment) {
+      message.attachment = {
+        id: data.attachment.id,
+        originalName: data.attachment.originalName,
+        mimeType: data.attachment.mimeType,
+        size: data.attachment.size
       };
     }
 
