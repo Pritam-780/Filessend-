@@ -51,7 +51,7 @@ export default function MobileMenu({
       }`}>
         <div className="p-6">
           <div className="flex justify-between items-center mb-8">
-            <h2 className="text-xl font-bold bg-gradient-to-r from-purple-600 via-blue-600 to-indigo-600 bg-clip-text text-transparent animate-pulse">Online Library</h2>
+            <h2 className="text-xl font-bold bg-gradient-to-r from-red-500 via-orange-500 to-yellow-500 bg-clip-text text-transparent animate-pulse">Academic Avengers</h2>
             <Button 
               variant="ghost"
               size="sm"
