@@ -479,49 +479,49 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
   return (
     <div className="fixed inset-0 z-50">
       <div className="h-screen w-screen bg-gradient-to-br from-slate-900 via-blue-900 to-purple-900 flex flex-col">
-        {/* Top Header */}
-        <div className="p-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg">
+        {/* Top Header - Responsive */}
+        <div className="p-2 sm:p-3 lg:p-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg">
           <div className="flex justify-between items-center">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1 sm:gap-2 lg:gap-3">
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={handleClose}
-                className="p-1 text-white hover:bg-white hover:bg-opacity-20"
+                className="p-1 sm:p-2 text-white hover:bg-white hover:bg-opacity-20"
                 data-testid="button-back-home"
               >
-                <ArrowLeft className="h-4 w-4" />
+                <ArrowLeft className="h-3 w-3 sm:h-4 sm:w-4 lg:h-5 lg:w-5" />
               </Button>
-              <MessageCircle className="h-5 w-5" />
-              <h3 className="text-sm sm:text-lg font-bold bg-gradient-to-r from-green-400 via-blue-400 to-purple-400 bg-clip-text text-transparent animate-pulse">Chat Room</h3>
+              <MessageCircle className="h-4 w-4 sm:h-5 sm:w-5 lg:h-6 lg:w-6" />
+              <h3 className="text-xs sm:text-sm md:text-lg lg:text-xl xl:text-2xl font-bold bg-gradient-to-r from-green-400 via-blue-400 to-purple-400 bg-clip-text text-transparent animate-pulse">Chat Room</h3>
               {isAuthenticated && (
-                <div className="flex items-center gap-1 bg-white bg-opacity-20 rounded-full px-2 py-1">
-                  <Users className="h-3 w-3" />
+                <div className="flex items-center gap-1 bg-white bg-opacity-20 rounded-full px-1 py-0.5 sm:px-2 sm:py-1">
+                  <Users className="h-2 w-2 sm:h-3 sm:w-3" />
                   <span className="text-xs font-medium">{userCount}</span>
                 </div>
               )}
             </div>
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1 sm:gap-2">
               {isAuthenticated && (
                 <>
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={() => setShowFileBrowser(!showFileBrowser)}
-                    className="bg-green-500 hover:bg-green-600 text-white px-2 py-1 rounded-md text-xs"
+                    className="bg-green-500 hover:bg-green-600 text-white px-1 py-0.5 sm:px-2 sm:py-1 lg:px-3 lg:py-2 rounded-md text-xs sm:text-sm"
                     data-testid="button-toggle-files"
                   >
-                    <Folder className="h-3 w-3 mr-1" />
-                    Files
+                    <Folder className="h-2 w-2 sm:h-3 sm:w-3 lg:h-4 lg:w-4 sm:mr-1" />
+                    <span className="hidden sm:inline">Files</span>
                   </Button>
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={() => setShowDeleteAllModal(true)}
-                    className="bg-red-500 hover:bg-red-600 text-white px-2 py-1 rounded-md text-xs"
+                    className="bg-red-500 hover:bg-red-600 text-white px-1 py-0.5 sm:px-2 sm:py-1 lg:px-3 lg:py-2 rounded-md text-xs sm:text-sm"
                   >
-                    <Trash2 className="h-3 w-3 mr-1" />
-                    Clear
+                    <Trash2 className="h-2 w-2 sm:h-3 sm:w-3 lg:h-4 lg:w-4 sm:mr-1" />
+                    <span className="hidden sm:inline">Clear</span>
                   </Button>
                 </>
               )}
@@ -529,22 +529,22 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
                 variant="ghost"
                 size="sm"
                 onClick={handleClose}
-                className="p-1 text-white hover:bg-white hover:bg-opacity-20"
+                className="p-1 sm:p-2 text-white hover:bg-white hover:bg-opacity-20"
                 data-testid="button-close-chat"
               >
-                <X className="h-4 w-4" />
+                <X className="h-3 w-3 sm:h-4 sm:w-4 lg:h-5 lg:w-5" />
               </Button>
             </div>
           </div>
         </div>
 
-        {/* Main Content Area */}
-        <div className="flex-1 flex overflow-hidden">
+        {/* Main Content Area - Responsive Layout */}
+        <div className="flex-1 flex overflow-hidden relative">
 
           {!isAuthenticated ? (
-            /* Login Form */
-            <div className="flex-1 flex items-center justify-center p-4">
-              <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-sm border border-blue-200">
+            /* Login Form - Responsive */
+            <div className="flex-1 flex items-center justify-center p-2 sm:p-4 lg:p-6">
+              <div className="bg-white rounded-lg shadow-lg p-4 sm:p-6 lg:p-8 w-full max-w-xs sm:max-w-sm lg:max-w-md border border-blue-200">
                 <div className="text-center mb-6">
                   <Lock className="h-8 w-8 text-blue-600 mx-auto mb-2" />
                   <h4 className="text-lg font-bold text-gray-800 mb-2">Join Chat Room</h4>
@@ -603,11 +603,26 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
           ) : (
             /* Chat Interface with File Browser */
             <>
-              {/* File Browser Sidebar */}
+              {/* File Browser Sidebar - Responsive */}
               {showFileBrowser && (
-                <div className="w-64 sm:w-80 bg-gray-800 text-white border-r border-gray-700 flex flex-col">
-                  <div className="p-4 border-b border-gray-700">
-                    <h3 className="text-lg font-bold mb-3 text-center">📁 File Browser</h3>
+                <div className={`
+                  ${showFileBrowser ? 'absolute md:relative' : 'hidden'} 
+                  ${showFileBrowser ? 'inset-0 md:inset-auto' : ''} 
+                  w-full sm:w-64 md:w-72 lg:w-80 xl:w-96 
+                  bg-gray-800 text-white border-r border-gray-700 flex flex-col z-20
+                  md:z-auto
+                `}
+                  <div className="p-3 sm:p-4 border-b border-gray-700">
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="text-sm sm:text-lg font-bold text-center flex-1">📁 File Browser</h3>
+                      <Button
+                        onClick={() => setShowFileBrowser(false)}
+                        className="md:hidden w-6 h-6 p-0 bg-gray-700 hover:bg-gray-600 text-white rounded-full"
+                        size="sm"
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </div>
                     
                     {/* Search */}
                     <div className="relative mb-3">
@@ -711,11 +726,11 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
                     messages.map((msg) => (
                       <div
                         key={msg.id}
-                        className={`flex ${msg.username === username ? 'justify-end' : 'justify-start'} group`}
+                        className={`flex ${msg.username === username ? 'justify-end' : 'justify-start'} group px-2 sm:px-0`}
                         onMouseEnter={() => setHoveredMessage(msg.id)}
                         onMouseLeave={() => setHoveredMessage(null)}
                       >
-                        <div className="relative max-w-sm md:max-w-md lg:max-w-lg">
+                        <div className="relative max-w-[85%] sm:max-w-sm md:max-w-md lg:max-w-lg xl:max-w-xl 2xl:max-w-2xl">
                           {/* Reply indicator */}
                           {msg.replyTo && (
                             <div className="mb-2 p-2 bg-gray-100 border-l-4 border-gray-400 rounded-r-lg text-xs">
@@ -728,22 +743,22 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
                           )}
                           
                           <div
-                            className={`px-4 py-3 rounded-lg cursor-pointer transition-all text-white shadow-md ${
+                            className={`px-2 py-2 sm:px-3 sm:py-2 md:px-4 md:py-3 rounded-lg cursor-pointer transition-all text-white shadow-md ${
                               msg.username === username
                                 ? 'bg-gradient-to-r from-blue-500 to-purple-500'
                                 : getUserColor(msg.username)
                             }`}
                             onClick={() => handleReplyToMessage(msg)}
                           >
-                            <div className="flex items-center gap-2 mb-1">
-                              <span className="text-xs font-medium text-white opacity-90">
+                            <div className="flex items-center gap-1 sm:gap-2 mb-1">
+                              <span className="text-xs sm:text-sm font-medium text-white opacity-90 truncate max-w-24 sm:max-w-32">
                                 {msg.username}
                               </span>
-                              <span className="text-xs text-white opacity-75">
+                              <span className="text-xs text-white opacity-75 flex-shrink-0">
                                 {formatTime(msg.timestamp)}
                               </span>
                             </div>
-                            <p className="text-sm break-words leading-relaxed">{msg.message}</p>
+                            <p className="text-xs sm:text-sm md:text-base break-words leading-relaxed">{msg.message}</p>
                             {msg.attachment && renderFileAttachment(msg.attachment)}
                           </div>
                           
@@ -775,8 +790,8 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
                   <div ref={messagesEndRef} />
                 </div>
 
-                {/* Message Input */}
-                <div className="p-4 bg-white border-t border-gray-200 shadow-lg">
+                {/* Message Input - Responsive */}
+                <div className="p-2 sm:p-3 md:p-4 bg-white border-t border-gray-200 shadow-lg">
                   {/* Reply Preview */}
                   {replyingTo && (
                     <div className="mb-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
@@ -825,14 +840,14 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
                     </div>
                   )}
                   
-                  <form onSubmit={handleSendMessage} className="flex gap-3">
+                  <form onSubmit={handleSendMessage} className="flex gap-1 sm:gap-2 md:gap-3">
                     <div className="flex-1 relative">
                       <Input
                         type="text"
                         value={currentMessage}
                         onChange={(e) => setCurrentMessage(e.target.value)}
                         placeholder={replyingTo ? `Reply to ${replyingTo.username}...` : selectedFile ? "Add a message (optional)..." : "Type your message..."}
-                        className="w-full border-gray-300 focus:border-blue-500 focus:ring-blue-500 text-base py-3 pr-12"
+                        className="w-full border-gray-300 focus:border-blue-500 focus:ring-blue-500 text-xs sm:text-sm md:text-base py-2 sm:py-2.5 md:py-3 pr-12"
                         maxLength={1000}
                         disabled={!socket || isUploading}
                         data-testid="input-message"
@@ -854,22 +869,22 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
                       type="button"
                       onClick={() => fileInputRef.current?.click()}
                       disabled={!socket || isUploading}
-                      className="bg-green-600 hover:bg-green-700 text-white px-4 py-3"
+                      className="bg-green-600 hover:bg-green-700 text-white px-2 py-2 sm:px-3 sm:py-2.5 md:px-4 md:py-3 flex-shrink-0"
                       data-testid="button-upload"
                     >
-                      <Paperclip className="h-4 w-4" />
+                      <Paperclip className="h-3 w-3 sm:h-4 sm:w-4" />
                     </Button>
                     
                     <Button
                       type="submit"
                       disabled={(!currentMessage.trim() && !selectedFile) || !socket || isUploading}
-                      className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-6 py-3"
+                      className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-3 py-2 sm:px-4 sm:py-2.5 md:px-6 md:py-3 flex-shrink-0"
                       data-testid="button-send"
                     >
                       {isUploading ? (
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                        <div className="animate-spin rounded-full h-3 w-3 sm:h-4 sm:w-4 border-b-2 border-white"></div>
                       ) : (
-                        <Send className="h-4 w-4" />
+                        <Send className="h-3 w-3 sm:h-4 sm:w-4" />
                       )}
                     </Button>
                   </form>
