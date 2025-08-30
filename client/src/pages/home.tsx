@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link } from "wouter";
-import { Search, Grid, List, GraduationCap, BookOpen, Users } from "lucide-react";
+import { Search, Grid, List, GraduationCap, BookOpen, Users, Plus } from "lucide-react";
 import Header from "@/components/header";
 import FileCard from "@/components/file-card";
 import PreviewModal from "@/components/preview-modal";
@@ -9,8 +9,11 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { FileData, fileStorage } from "@/lib/fileStorage";
 import PasswordModal from "@/components/password-modal";
+import UploadModal from "@/components/upload-modal";
+import { useToast } from "@/hooks/use-toast";
 
 export default function Home() {
+  const { toast } = useToast();
   const [previewFile, setPreviewFile] = useState<FileData | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [fileTypeFilter, setFileTypeFilter] = useState("");
@@ -199,6 +202,11 @@ export default function Home() {
         file={previewFile}
       />
 
+      <UploadModal
+        isOpen={showUploadModal}
+        onClose={() => setShowUploadModal(false)}
+      />
+
       <PasswordModal
         isOpen={!!deleteTarget}
         onClose={() => setDeleteTarget(null)}
@@ -207,8 +215,17 @@ export default function Home() {
             fileStorage.deleteFile(deleteTarget.id);
             handleFileDelete();
             setDeleteTarget(null);
+            toast({
+              title: "File Deleted",
+              description: `"${deleteTarget.name}" has been successfully deleted.`,
+              className: "bg-gradient-to-r from-green-50 to-emerald-50 border-green-200",
+            });
           } else {
-            alert("Incorrect password!");
+            toast({
+              title: "Access Denied",
+              description: "Incorrect password. Please try again.",
+              variant: "destructive",
+            });
           }
         }}
       />
