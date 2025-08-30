@@ -188,5 +188,47 @@ export async function registerRoutes(app: Express, io?: SocketIOServer): Promise
     }
   });
 
+  // Delete file permanently
+  app.delete("/api/files/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { password } = req.body;
+      
+      // Verify password for deletion
+      if (password !== 'Ak47') {
+        return res.status(403).json({ message: "Incorrect password" });
+      }
+
+      const file = await storage.getFile(id);
+      
+      if (!file) {
+        return res.status(404).json({ message: "File not found" });
+      }
+
+      const filePath = path.join(uploadDir, file.filename);
+      
+      // Delete file from database
+      await storage.deleteFile(id);
+      
+      // Delete physical file from disk
+      if (fs.existsSync(filePath)) {
+        fs.unlinkSync(filePath);
+      }
+
+      // Broadcast file deletion to all chat users
+      if (io) {
+        io.to('main-chat').emit('file-deleted', { 
+          fileId: id, 
+          filename: file.originalName 
+        });
+      }
+
+      res.json({ message: "File deleted successfully" });
+    } catch (error) {
+      console.error('Delete error:', error);
+      res.status(500).json({ message: "Failed to delete file" });
+    }
+  });
+
   
 }

@@ -199,6 +199,15 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
         });
       });
 
+      newSocket.on('file-deleted', (data) => {
+        loadFiles();
+        toast({
+          title: "File Deleted",
+          description: `${data.filename} was permanently deleted`,
+          className: "bg-red-50 border-red-200",
+        });
+      });
+
       newSocket.on('disconnect', () => {
         setIsAuthenticated(false);
         toast({
@@ -377,6 +386,35 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
     }
   };
 
+  const handleDeleteFile = async (fileId: string, fileName: string) => {
+    try {
+      const response = await fetch(`/api/files/${fileId}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ password: 'Ak47' })
+      });
+
+      if (response.ok) {
+        loadFiles();
+        toast({
+          title: "File Deleted",
+          description: `"${fileName}" has been permanently deleted.`,
+          className: "bg-green-50 border-green-200",
+        });
+      } else {
+        throw new Error('Failed to delete file');
+      }
+    } catch (error) {
+      toast({
+        title: "Delete Error",
+        description: "Failed to delete file. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
+
   const renderFileAttachment = (attachment: any) => {
     const file = files.find(f => f.id === attachment.id);
     if (!file) return null;
@@ -384,33 +422,62 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
     if (attachment.mimeType.startsWith('image/')) {
       const imageUrl = `/api/files/${attachment.id}/download`;
       return (
-        <div className="mt-2 max-w-xs">
-          <img 
-            src={imageUrl} 
-            alt={attachment.originalName}
-            className="rounded-lg max-w-full h-auto cursor-pointer hover:opacity-90 transition-opacity"
-            onClick={() => setPreviewFile(file)}
-          />
+        <div className="mt-2 max-w-xs group">
+          <div className="relative">
+            <img 
+              src={imageUrl} 
+              alt={attachment.originalName}
+              className="rounded-lg max-w-full h-auto cursor-pointer hover:opacity-90 transition-opacity"
+              onClick={() => setPreviewFile(file)}
+            />
+            <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+              <Button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleDeleteFile(attachment.id, attachment.originalName);
+                }}
+                className="w-8 h-8 p-0 bg-red-500 hover:bg-red-600 text-white rounded-full shadow-lg"
+                size="sm"
+                title="Delete file permanently"
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
           <p className="text-xs opacity-75 mt-1">{attachment.originalName}</p>
         </div>
       );
     }
     
     return (
-      <div className="mt-2 p-3 bg-white bg-opacity-10 rounded-lg max-w-xs">
+      <div className="mt-2 p-3 bg-white bg-opacity-10 rounded-lg max-w-xs group">
         <div className="flex items-center gap-2">
           {getFileIcon(attachment.mimeType)}
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium truncate">{attachment.originalName}</p>
             <p className="text-xs opacity-75">{(attachment.size / 1024 / 1024).toFixed(2)} MB</p>
           </div>
-          <Button
-            onClick={() => file && setPreviewFile(file)}
-            className="w-8 h-8 p-0 bg-white bg-opacity-20 hover:bg-white hover:bg-opacity-30"
-            size="sm"
-          >
-            <Eye className="h-4 w-4" />
-          </Button>
+          <div className="flex gap-1">
+            <Button
+              onClick={() => file && setPreviewFile(file)}
+              className="w-8 h-8 p-0 bg-white bg-opacity-20 hover:bg-white hover:bg-opacity-30"
+              size="sm"
+              title="Preview file"
+            >
+              <Eye className="h-4 w-4" />
+            </Button>
+            <Button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleDeleteFile(attachment.id, attachment.originalName);
+              }}
+              className="w-8 h-8 p-0 bg-red-500 hover:bg-red-600 text-white opacity-0 group-hover:opacity-100 transition-opacity"
+              size="sm"
+              title="Delete file permanently"
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
       </div>
     );

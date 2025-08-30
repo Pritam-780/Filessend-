@@ -5,7 +5,7 @@ export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
-  
+
   // File operations
   createFile(file: InsertFile): Promise<File>;
   getFile(id: string): Promise<File | undefined>;
@@ -74,13 +74,13 @@ export class MemStorage implements IStorage {
 
   async searchFiles(query: string, category?: string, mimeType?: string): Promise<File[]> {
     const queryLower = query.toLowerCase();
-    
+
     return Array.from(this.files.values())
       .filter(file => {
         const matchesQuery = file.originalName.toLowerCase().includes(queryLower);
         const matchesCategory = !category || file.category === category;
         const matchesMimeType = !mimeType || file.mimeType.includes(mimeType);
-        
+
         return matchesQuery && matchesCategory && matchesMimeType;
       })
       .sort((a, b) => b.uploadedAt.getTime() - a.uploadedAt.getTime());
