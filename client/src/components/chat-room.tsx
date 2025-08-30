@@ -1,6 +1,6 @@
 
 import { useState, useEffect, useRef } from "react";
-import { X, Send, Users, MessageCircle, Lock, Trash2, AlertTriangle } from "lucide-react";
+import { X, Send, Users, MessageCircle, Lock, Trash2, AlertTriangle, Reply } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -12,6 +12,11 @@ interface ChatMessage {
   username: string;
   message: string;
   timestamp: number;
+  replyTo?: {
+    id: string;
+    username: string;
+    message: string;
+  };
 }
 
 interface ChatRoomProps {
@@ -32,8 +37,32 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
   const [showDeleteAllModal, setShowDeleteAllModal] = useState(false);
   const [deleteAllPassword, setDeleteAllPassword] = useState("");
   const [isDeletingAll, setIsDeletingAll] = useState(false);
+  const [replyingTo, setReplyingTo] = useState<ChatMessage | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
+
+  // Generate consistent color for each user (avoiding white)
+  const getUserColor = (username: string) => {
+    const colors = [
+      'bg-gradient-to-r from-red-500 to-pink-500',
+      'bg-gradient-to-r from-blue-500 to-cyan-500',
+      'bg-gradient-to-r from-green-500 to-emerald-500',
+      'bg-gradient-to-r from-purple-500 to-violet-500',
+      'bg-gradient-to-r from-orange-500 to-amber-500',
+      'bg-gradient-to-r from-indigo-500 to-blue-500',
+      'bg-gradient-to-r from-pink-500 to-rose-500',
+      'bg-gradient-to-r from-teal-500 to-green-500',
+      'bg-gradient-to-r from-yellow-500 to-orange-500',
+      'bg-gradient-to-r from-slate-600 to-gray-600'
+    ];
+    
+    let hash = 0;
+    for (let i = 0; i < username.length; i++) {
+      hash = username.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    
+    return colors[Math.abs(hash) % colors.length];
+  };
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -175,17 +204,36 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
       return;
     }
 
-    socket.emit('send-message', {
+    const messageData: any = {
       message: currentMessage.trim()
-    });
+    };
+
+    if (replyingTo) {
+      messageData.replyTo = {
+        id: replyingTo.id,
+        username: replyingTo.username,
+        message: replyingTo.message
+      };
+    }
+
+    socket.emit('send-message', messageData);
 
     setCurrentMessage("");
+    setReplyingTo(null);
   };
 
   const handleDeleteMessage = (messageId: string) => {
     if (!socket || !isAuthenticated) return;
     
     socket.emit('delete-message', { messageId });
+  };
+
+  const handleReplyToMessage = (message: ChatMessage) => {
+    setReplyingTo(message);
+  };
+
+  const cancelReply = () => {
+    setReplyingTo(null);
   };
 
   const handleDeleteAllMessages = (e: React.FormEvent) => {
@@ -353,38 +401,57 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
                       onMouseEnter={() => setHoveredMessage(msg.id)}
                       onMouseLeave={() => setHoveredMessage(null)}
                     >
-                      <div className="relative">
+                      <div className="relative max-w-xs lg:max-w-md">
+                        {/* Reply indicator */}
+                        {msg.replyTo && (
+                          <div className="mb-2 p-2 bg-gray-100 border-l-4 border-gray-400 rounded-r-lg text-xs">
+                            <div className="flex items-center gap-1 text-gray-600 mb-1">
+                              <Reply className="h-3 w-3" />
+                              <span className="font-medium">{msg.replyTo.username}</span>
+                            </div>
+                            <p className="text-gray-700 italic truncate">{msg.replyTo.message}</p>
+                          </div>
+                        )}
+                        
                         <div
-                          className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg cursor-pointer transition-all ${
+                          className={`px-4 py-2 rounded-lg cursor-pointer transition-all text-white ${
                             msg.username === username
-                              ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white'
-                              : 'bg-white border border-gray-200 text-gray-800 shadow-sm'
+                              ? 'bg-gradient-to-r from-blue-500 to-purple-500'
+                              : getUserColor(msg.username)
                           }`}
+                          onClick={() => handleReplyToMessage(msg)}
                         >
                           <div className="flex items-center gap-2 mb-1">
-                            <span className={`text-xs font-medium ${
-                              msg.username === username ? 'text-blue-100' : 'text-blue-600'
-                            }`}>
+                            <span className="text-xs font-medium text-white opacity-90">
                               {msg.username}
                             </span>
-                            <span className={`text-xs ${
-                              msg.username === username ? 'text-blue-200' : 'text-gray-500'
-                            }`}>
+                            <span className="text-xs text-white opacity-75">
                               {formatTime(msg.timestamp)}
                             </span>
                           </div>
                           <p className="text-sm break-words">{msg.message}</p>
                         </div>
                         
-                        {/* Delete button - appears on hover */}
+                        {/* Action buttons - appears on hover */}
                         {hoveredMessage === msg.id && (
-                          <Button
-                            onClick={() => handleDeleteMessage(msg.id)}
-                            className="absolute -top-2 -right-2 w-6 h-6 p-0 bg-red-500 hover:bg-red-600 text-white rounded-full shadow-lg opacity-90 hover:opacity-100 transition-all"
-                            size="sm"
-                          >
-                            <X className="h-3 w-3" />
-                          </Button>
+                          <div className="absolute -top-2 -right-2 flex gap-1">
+                            <Button
+                              onClick={() => handleReplyToMessage(msg)}
+                              className="w-6 h-6 p-0 bg-blue-500 hover:bg-blue-600 text-white rounded-full shadow-lg opacity-90 hover:opacity-100 transition-all"
+                              size="sm"
+                              data-testid={`button-reply-${msg.id}`}
+                            >
+                              <Reply className="h-3 w-3" />
+                            </Button>
+                            <Button
+                              onClick={() => handleDeleteMessage(msg.id)}
+                              className="w-6 h-6 p-0 bg-red-500 hover:bg-red-600 text-white rounded-full shadow-lg opacity-90 hover:opacity-100 transition-all"
+                              size="sm"
+                              data-testid={`button-delete-${msg.id}`}
+                            >
+                              <X className="h-3 w-3" />
+                            </Button>
+                          </div>
                         )}
                       </div>
                     </div>
@@ -395,20 +462,43 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
 
               {/* Message Input */}
               <div className="p-4 border-t border-indigo-200 bg-gradient-to-r from-white to-blue-50 rounded-b-xl">
+                {/* Reply Preview */}
+                {replyingTo && (
+                  <div className="mb-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2 text-blue-700">
+                        <Reply className="h-4 w-4" />
+                        <span className="text-sm font-medium">Replying to {replyingTo.username}</span>
+                      </div>
+                      <Button
+                        onClick={cancelReply}
+                        className="w-5 h-5 p-0 bg-gray-400 hover:bg-gray-500 text-white rounded-full"
+                        size="sm"
+                        data-testid="button-cancel-reply"
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </div>
+                    <p className="text-sm text-gray-700 italic truncate">{replyingTo.message}</p>
+                  </div>
+                )}
+                
                 <form onSubmit={handleSendMessage} className="flex gap-3">
                   <Input
                     type="text"
                     value={currentMessage}
                     onChange={(e) => setCurrentMessage(e.target.value)}
-                    placeholder="Type your message..."
+                    placeholder={replyingTo ? `Reply to ${replyingTo.username}...` : "Type your message..."}
                     className="flex-1 border-gray-300 focus:border-blue-500 focus:ring-blue-500"
                     maxLength={1000}
                     disabled={!socket}
+                    data-testid="input-message"
                   />
                   <Button
                     type="submit"
                     disabled={!currentMessage.trim() || !socket}
                     className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-6"
+                    data-testid="button-send"
                   >
                     <Send className="h-4 w-4" />
                   </Button>

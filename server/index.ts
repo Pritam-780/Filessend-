@@ -35,6 +35,11 @@ let messageHistory: Array<{
   username: string;
   message: string;
   timestamp: number;
+  replyTo?: {
+    id: string;
+    username: string;
+    message: string;
+  };
 }> = [];
 
 // Keep only last 500 messages in memory
@@ -73,12 +78,21 @@ io.on('connection', (socket) => {
       return;
     }
 
-    const message = {
+    const message: any = {
       id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       username: user.username,
       message: data.message.substring(0, 1000), // Limit message length
       timestamp: Date.now()
     };
+
+    // Add reply information if provided
+    if (data.replyTo) {
+      message.replyTo = {
+        id: data.replyTo.id,
+        username: data.replyTo.username,
+        message: data.replyTo.message.substring(0, 100) // Limit reply preview
+      };
+    }
 
     messageHistory.push(message);
     
