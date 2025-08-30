@@ -126,7 +126,7 @@ export default function Home() {
         {/* Hero Section */}
         <div className="text-center mb-12 bg-gradient-to-r from-white/80 to-blue-50/80 backdrop-blur-sm rounded-2xl p-8 shadow-xl border border-blue-200">
           <h1 className="text-4xl md:text-6xl font-bold bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent mb-4">
-            Welcome to <span className="bg-gradient-to-r from-red-500 via-orange-500 via-yellow-500 to-green-500 bg-clip-text text-transparent animate-bounce">Academic Avenger LittleBit</span>
+            Welcome to <span className="bg-gradient-to-r from-red-500 via-orange-500 via-yellow-500 to-green-500 bg-clip-text text-transparent animate-bounce">online library</span>
           </h1>
           <p className="text-lg md:text-xl text-gray-700 mb-8 max-w-3xl mx-auto font-medium">
 Your colorful digital library for organizing and accessing academic books, relaxing reads, and professional resources with vibrant style.
