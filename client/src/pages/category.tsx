@@ -4,9 +4,14 @@ import { ArrowLeft, Search, Grid, List } from "lucide-react";
 import Header from "@/components/header";
 import FileCard from "@/components/file-card";
 import PreviewModal from "@/components/preview-modal";
+import ChatRoom from "@/components/chat-room";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { FileData, fileStorage } from "@/lib/fileStorage";
+import PasswordModal from "@/components/password-modal";
+import UploadModal from "@/components/upload-modal";
+import { useToast } from "@/hooks/use-toast";
 
 const categoryNames = {
   academic: "Academic Books",
@@ -26,10 +31,20 @@ export default function Category() {
   const [searchQuery, setSearchQuery] = useState("");
   const [files, setFiles] = useState<FileData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [showUploadModal, setShowUploadModal] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<FileData | null>(null);
+  const [showChatRoom, setShowChatRoom] = useState(false);
+  const { toast } = useToast();
+
+  const handleFileDelete = () => {
+    if (deleteTarget) {
+      setFiles(files.filter(file => file.id !== deleteTarget.id));
+    }
+  };
 
   useEffect(() => {
     if (!category) return;
-    
+
     const loadFiles = () => {
       try {
         const categoryFiles = fileStorage.getFilesByCategory(category);
@@ -42,11 +57,11 @@ export default function Category() {
     };
 
     loadFiles();
-    
+
     // Listen for storage changes
     const handleStorageChange = () => loadFiles();
     window.addEventListener('storage', handleStorageChange);
-    
+
     return () => window.removeEventListener('storage', handleStorageChange);
   }, [category]);
 
@@ -62,7 +77,7 @@ export default function Category() {
   if (!category || !(category in categoryNames)) {
     return (
       <div className="min-h-screen surface-bg">
-        <Header />
+        <Header onSearchChange={setSearchQuery} onChatOpen={() => setShowChatRoom(true)} />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="text-center">
             <h2 className="text-2xl font-bold text-secondary mb-4">Category Not Found</h2>
@@ -81,7 +96,7 @@ export default function Category() {
   if (isLoading) {
     return (
       <div className="min-h-screen surface-bg">
-        <Header />
+        <Header onSearchChange={setSearchQuery} onChatOpen={() => setShowChatRoom(true)} />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="flex items-center justify-center h-64">
             <div className="text-center">
@@ -99,8 +114,11 @@ export default function Category() {
 
   return (
     <div className="min-h-screen surface-bg">
-      <Header />
-      
+      <Header 
+        onSearchChange={setSearchQuery} 
+        onChatOpen={() => setShowChatRoom(true)} 
+      />
+
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Category Header */}
         <section className="mb-8">
@@ -186,6 +204,33 @@ export default function Category() {
         isOpen={!!previewFile}
         onClose={() => setPreviewFile(null)}
         file={previewFile}
+      />
+      <PasswordModal
+        isOpen={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        onPasswordSubmit={(password) => {
+          if (deleteTarget && password === "Ak47") {
+            fileStorage.deleteFile(deleteTarget.id);
+            handleFileDelete();
+            setDeleteTarget(null);
+            toast({
+              title: "File Deleted",
+              description: `"${deleteTarget.name}" has been successfully deleted.`,
+              className: "bg-gradient-to-r from-green-50 to-emerald-50 border-green-200",
+            });
+          } else {
+            toast({
+              title: "Access Denied",
+              description: "Incorrect password. Please try again.",
+              variant: "destructive",
+            });
+          }
+        }}
+      />
+
+      <ChatRoom 
+        isOpen={showChatRoom}
+        onClose={() => setShowChatRoom(false)}
       />
     </div>
   );

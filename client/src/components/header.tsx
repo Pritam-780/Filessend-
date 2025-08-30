@@ -1,11 +1,16 @@
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
-import { Menu, Upload } from "lucide-react";
+import { Menu, Upload, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import MobileMenu from "@/components/mobile-menu";
 import UploadModal from "@/components/upload-modal";
 
-export default function Header() {
+interface HeaderProps {
+  onSearchChange: (query: string) => void;
+  onChatOpen?: () => void;
+}
+
+export default function Header({ onSearchChange, onChatOpen }: HeaderProps) {
   const [location] = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
@@ -31,7 +36,7 @@ export default function Header() {
             >
               <Menu className="h-5 w-5" />
             </Button>
-            
+
             {/* Logo/Brand */}
             <div className="flex-1 flex justify-center md:justify-start">
               <Link href="/">
@@ -40,7 +45,7 @@ export default function Header() {
                 </h1>
               </Link>
             </div>
-            
+
             {/* Desktop Navigation */}
             <nav className="hidden md:flex space-x-8 items-center">
               {navigationItems.map((item) => (
@@ -60,7 +65,7 @@ export default function Header() {
                 Upload
               </Button>
             </nav>
-            
+
             {/* Mobile Upload Button */}
             <Button
               onClick={() => setIsUploadModalOpen(true)}

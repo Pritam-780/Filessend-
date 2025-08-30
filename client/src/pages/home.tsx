@@ -11,6 +11,7 @@ import { FileData, fileStorage } from "@/lib/fileStorage";
 import PasswordModal from "@/components/password-modal";
 import UploadModal from "@/components/upload-modal";
 import { useToast } from "@/hooks/use-toast";
+import ChatRoom from "@/components/chat-room"; // Assuming ChatRoom component is created
 
 export default function Home() {
   const { toast } = useToast();
@@ -23,6 +24,7 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(true);
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<FileData | null>(null);
+  const [showChatRoom, setShowChatRoom] = useState(false); // State to control chat room visibility
 
   useEffect(() => {
     loadFiles();
@@ -91,7 +93,10 @@ export default function Home() {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
-        <Header />
+        <Header 
+          onSearchChange={setSearchQuery} 
+          onChatOpen={() => setShowChatRoom(true)} 
+        />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="flex items-center justify-center h-64">
             <div className="text-center animate-pulse">
@@ -112,7 +117,10 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
-      <Header />
+      <Header 
+        onSearchChange={setSearchQuery} 
+        onChatOpen={() => setShowChatRoom(true)} 
+      />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Hero Section */}
@@ -230,6 +238,14 @@ export default function Home() {
           }
         }}
       />
+
+      {/* Chat Room Modal */}
+      {showChatRoom && (
+        <ChatRoom 
+          isOpen={showChatRoom}
+          onClose={() => setShowChatRoom(false)}
+        />
+      )}
     </div>
   );
 }

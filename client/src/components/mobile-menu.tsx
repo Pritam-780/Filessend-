@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { Link } from "wouter";
-import { X, Home, GraduationCap, BookOpen, Users } from "lucide-react";
+import { X, Home, GraduationCap, BookOpen, Users, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface MobileMenuProps {
@@ -12,6 +12,7 @@ interface MobileMenuProps {
     section: string;
   }>;
   currentLocation: string;
+  onChatOpen?: () => void;
 }
 
 const icons = {
@@ -25,7 +26,8 @@ export default function MobileMenu({
   isOpen, 
   onClose, 
   navigationItems, 
-  currentLocation 
+  currentLocation,
+  onChatOpen
 }: MobileMenuProps) {
   useEffect(() => {
     if (isOpen) {
@@ -76,6 +78,19 @@ export default function MobileMenu({
                 </Link>
               );
             })}
+            
+            {onChatOpen && (
+              <div 
+                onClick={() => {
+                  onChatOpen();
+                  onClose();
+                }}
+                className="flex items-center py-3 px-4 text-secondary hover:bg-gray-100 rounded-lg transition-colors font-medium cursor-pointer"
+              >
+                <MessageCircle className="h-5 w-5 mr-3" />
+                Chat Room
+              </div>
+            )}
           </nav>
         </div>
       </div>
