@@ -51,7 +51,7 @@ export default function MobileMenu({
       }`}>
         <div className="p-6">
           <div className="flex justify-between items-center mb-8">
-            <h2 className="text-xl font-bold text-primary">AAILAR PROD</h2>
+            <h2 className="text-xl font-bold text-primary">Study Time</h2>
             <Button 
               variant="ghost"
               size="sm"

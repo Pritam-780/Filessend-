@@ -493,7 +493,7 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
                 <ArrowLeft className="h-5 w-5" />
               </Button>
               <MessageCircle className="h-6 w-6" />
-              <h3 className="text-lg font-bold">AAILAR Chat Room</h3>
+              <h3 className="text-lg font-bold">Study Time Chat Room</h3>
               {isAuthenticated && (
                 <div className="flex items-center gap-2 bg-white bg-opacity-20 rounded-full px-3 py-1">
                   <Users className="h-4 w-4" />
