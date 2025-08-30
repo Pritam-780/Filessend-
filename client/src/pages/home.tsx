@@ -205,6 +205,7 @@ export default function Home() {
       <UploadModal
         isOpen={showUploadModal}
         onClose={() => setShowUploadModal(false)}
+        onUploadSuccess={loadFiles}
       />
 
       <PasswordModal

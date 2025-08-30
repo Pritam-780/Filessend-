@@ -1,9 +1,11 @@
 // Frontend-only file storage using localStorage and FileReader API
 export interface FileData {
   id: string;
+  name: string;
   filename: string;
   originalName: string;
   mimeType: string;
+  type: string;
   size: number;
   category: string;
   uploadedAt: Date;
@@ -66,9 +68,11 @@ export class LocalFileStorage {
       
       const fileData: FileData = {
         id: this.generateId(),
+        name: file.name,
         filename: `${Date.now()}-${file.name}`,
         originalName: file.name,
         mimeType: file.type,
+        type: file.type,
         size: file.size,
         category,
         uploadedAt: new Date(),

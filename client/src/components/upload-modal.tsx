@@ -12,22 +12,29 @@ import { fileStorage } from "@/lib/fileStorage";
 interface UploadModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onSuccess?: () => void;
 }
 
 interface FileWithPreview extends File {
   id: string;
 }
 
-export default function UploadModal({ isOpen, onClose }: UploadModalProps) {
+export default function UploadModal({ isOpen, onClose, onSuccess }: UploadModalProps) {
   const [selectedFiles, setSelectedFiles] = useState<FileWithPreview[]>([]);
   const [category, setCategory] = useState("");
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [password, setPassword] = useState("");
+  const [showPasswordInput, setShowPasswordInput] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
   const uploadMutation = useMutation({
     mutationFn: async () => {
+      if (password !== "Ak47") {
+        throw new Error("Incorrect password");
+      }
+
       // Simulate progress for demo purposes
       const progressInterval = setInterval(() => {
         setUploadProgress(prev => {
@@ -53,10 +60,12 @@ export default function UploadModal({ isOpen, onClose }: UploadModalProps) {
       toast({
         title: "Success",
         description: "Files uploaded successfully!",
+        className: "bg-gradient-to-r from-green-50 to-emerald-50 border-green-200",
       });
-      // Trigger a storage event to refresh file lists across components
-      window.dispatchEvent(new Event('storage'));
       handleClose();
+      if (onSuccess) {
+        onSuccess();
+      }
     },
     onError: (error: Error) => {
       toast({
@@ -133,6 +142,11 @@ export default function UploadModal({ isOpen, onClose }: UploadModalProps) {
       return;
     }
 
+    if (!showPasswordInput) {
+      setShowPasswordInput(true);
+      return;
+    }
+
     uploadMutation.mutate();
   };
 
@@ -140,6 +154,8 @@ export default function UploadModal({ isOpen, onClose }: UploadModalProps) {
     setSelectedFiles([]);
     setCategory("");
     setUploadProgress(0);
+    setPassword("");
+    setShowPasswordInput(false);
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
@@ -243,6 +259,21 @@ export default function UploadModal({ isOpen, onClose }: UploadModalProps) {
                 </div>
               )}
 
+              {/* Password Input */}
+              {showPasswordInput && (
+                <div>
+                  <Label className="text-sm font-medium text-secondary mb-2">Password</Label>
+                  <Input
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Enter password to upload"
+                    className="w-full"
+                    required
+                  />
+                </div>
+              )}
+
               {/* Upload Progress */}
               {uploadMutation.isPending && (
                 <div>
@@ -268,7 +299,7 @@ export default function UploadModal({ isOpen, onClose }: UploadModalProps) {
                   disabled={uploadMutation.isPending || selectedFiles.length === 0}
                 >
                   <CloudUpload className="h-4 w-4 mr-2" />
-                  Upload Files
+                  {showPasswordInput ? "Upload Files" : "Continue"}
                 </Button>
               </div>
             </form>
