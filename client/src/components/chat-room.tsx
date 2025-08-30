@@ -611,7 +611,7 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
                   w-full sm:w-64 md:w-72 lg:w-80 xl:w-96 
                   bg-gray-800 text-white border-r border-gray-700 flex flex-col z-20
                   md:z-auto
-                `}
+                `}>
                   <div className="p-3 sm:p-4 border-b border-gray-700">
                     <div className="flex items-center justify-between mb-3">
                       <h3 className="text-sm sm:text-lg font-bold text-center flex-1">📁 File Browser</h3>
