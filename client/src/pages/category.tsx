@@ -120,84 +120,65 @@ export default function Category() {
       />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Category Header */}
-        <section className="mb-8">
-          <div className="mb-4">
-            <Link href="/">
-              <Button variant="ghost" className="text-gray-600 hover:text-secondary">
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Back to Home
-              </Button>
-            </Link>
+        {/* Header */}
+        <div className="mb-8 bg-gradient-to-r from-white/80 to-blue-50/80 backdrop-blur-sm rounded-xl p-6 shadow-lg border border-blue-200">
+          <Link href="/">
+            <Button variant="outline" className="mb-4 hover:bg-blue-50 border-blue-300">
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back to Home
+            </Button>
+          </Link>
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent mb-2">{categoryName}</h1>
+          <p className="text-gray-700 font-medium text-lg">{categoryDescription}</p>
+          <div className="mt-4 bg-gradient-to-r from-blue-100 to-indigo-100 rounded-lg p-3 inline-block">
+            <span className="text-blue-800 font-bold">{displayFiles.length} files available</span>
           </div>
-          <h1 className="text-3xl md:text-4xl font-bold text-secondary mb-4">{categoryName}</h1>
-          <p className="text-lg text-gray-600 max-w-2xl">{categoryDescription}</p>
-        </section>
+        </div>
 
         {/* Search */}
-        <section className="mb-8">
-          <div className="surface rounded-xl shadow-sm border border-gray-200 p-6">
-            <h3 className="text-lg font-semibold text-secondary mb-4">Search in {categoryName}</h3>
-            <div className="flex gap-4">
-              <div className="flex-1">
-                <Input 
-                  type="text" 
-                  placeholder={`Search in ${categoryName.toLowerCase()}...`}
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full"
-                />
-              </div>
-              <Button className="bg-primary text-white hover:bg-blue-800">
-                <Search className="h-4 w-4 mr-2" />
-                Search
-              </Button>
-            </div>
+        <div className="mb-6 bg-gradient-to-r from-white/80 to-blue-50/80 backdrop-blur-sm rounded-xl p-4 shadow-lg border border-blue-200">
+          <div className="relative">
+            <Search className="h-5 w-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-blue-400" />
+            <Input
+              type="text"
+              placeholder={`Search in ${categoryName}...`}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10 border-blue-300 focus:border-blue-500 focus:ring-blue-500 bg-white/80"
+            />
           </div>
-        </section>
+        </div>
 
-        {/* Files */}
-        <section className="mb-12">
-          <div className="flex justify-between items-center mb-6">
-            <h3 className="text-2xl font-bold text-secondary">
-              {searchQuery ? 'Search Results' : `${categoryName} (${displayFiles.length})`}
-            </h3>
-            <div className="flex gap-2">
-              <Button variant="ghost" size="sm" className="p-2 text-gray-500 hover:text-secondary">
-                <Grid className="h-4 w-4" />
-              </Button>
-              <Button variant="ghost" size="sm" className="p-2 text-gray-500 hover:text-secondary">
-                <List className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
-
-          {/* File Grid */}
+        {/* Files Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
           {displayFiles.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {displayFiles.map((file: FileData) => (
-                <FileCard 
-                  key={file.id}
+            displayFiles.map((file) => (
+              <div key={file.id} className="transform hover:scale-105 transition-all duration-300">
+                <FileCard
                   file={file}
                   onPreview={setPreviewFile}
+                  onDelete={setDeleteTarget}
                 />
-              ))}
-            </div>
+              </div>
+            ))
           ) : (
-            <div className="text-center py-12">
-              <div className="text-gray-400 text-6xl mb-4">📂</div>
-              <h3 className="text-lg font-semibold text-gray-600 mb-2">
-                {searchQuery ? 'No files found' : `No files in ${categoryName}`}
-              </h3>
-              <p className="text-gray-500">
-                {searchQuery 
-                  ? 'Try adjusting your search terms'
-                  : `Upload some files to the ${categoryName.toLowerCase()} category to get started`
-                }
-              </p>
+            <div className="col-span-full text-center py-16">
+              <div className="bg-gradient-to-br from-white via-blue-50 to-indigo-50 rounded-xl p-8 shadow-lg border border-blue-200">
+                <div className="text-6xl mb-4">📁</div>
+                <h3 className="text-xl font-bold text-gray-800 mb-2">
+                  {searchQuery 
+                    ? `No files found for "${searchQuery}"`
+                    : `No files in ${categoryName} yet`}
+                </h3>
+                <p className="text-gray-600 font-medium">
+                  {searchQuery 
+                    ? "Try adjusting your search terms"
+                    : "Upload some files to get started!"}
+                </p>
+              </div>
             </div>
           )}
-        </section>
+        </div>
       </main>
 
       <PreviewModal 

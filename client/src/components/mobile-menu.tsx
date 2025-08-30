@@ -79,18 +79,18 @@ export default function MobileMenu({
               );
             })}
             
-            {onChatOpen && (
-              <div 
-                onClick={() => {
+            <div 
+              onClick={() => {
+                if (onChatOpen) {
                   onChatOpen();
                   onClose();
-                }}
-                className="flex items-center py-3 px-4 text-secondary hover:bg-gray-100 rounded-lg transition-colors font-medium cursor-pointer"
-              >
-                <MessageCircle className="h-5 w-5 mr-3" />
-                Chat Room
-              </div>
-            )}
+                }
+              }}
+              className="flex items-center py-3 px-4 text-secondary hover:bg-gray-100 rounded-lg transition-colors font-medium cursor-pointer"
+            >
+              <MessageCircle className="h-5 w-5 mr-3" />
+              Chat Room
+            </div>
           </nav>
         </div>
       </div>

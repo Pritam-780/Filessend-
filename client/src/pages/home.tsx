@@ -143,17 +143,16 @@ export default function Home() {
         {/* Categories */}
         <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6 mb-12">
           {categories.map((category) => (
-            <div
-              key={category.id}
-              className="bg-gradient-to-br from-white via-blue-50 to-indigo-50 rounded-xl p-6 text-center hover:shadow-2xl hover:scale-105 transition-all duration-300 cursor-pointer border-2 border-blue-200 shadow-lg"
-            >
-              <div className="bg-gradient-to-br from-blue-100 to-indigo-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 shadow-md">
-                <category.icon className="h-8 w-8 text-blue-600" />
+            <Link key={category.id} href={`/category/${category.id}`}>
+              <div className="bg-gradient-to-br from-white via-blue-50 to-indigo-50 rounded-xl p-6 text-center hover:shadow-2xl hover:scale-105 transition-all duration-300 cursor-pointer border-2 border-blue-200 shadow-lg">
+                <div className="bg-gradient-to-br from-blue-100 to-indigo-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 shadow-md">
+                  <category.icon className="h-8 w-8 text-blue-600" />
+                </div>
+                <h3 className="font-bold text-gray-800 mb-2 text-lg">{category.name}</h3>
+                <p className="text-sm text-blue-600 mb-4 font-medium">{category.description}</p>
+                <p className="text-indigo-600 font-bold text-lg">{category.count} files</p>
               </div>
-              <h3 className="font-bold text-gray-800 mb-2 text-lg">{category.name}</h3>
-              <p className="text-sm text-blue-600 mb-4 font-medium">{category.description}</p>
-              <p className="text-indigo-600 font-bold text-lg">{category.count} files</p>
-            </div>
+            </Link>
           ))}
         </div>
 

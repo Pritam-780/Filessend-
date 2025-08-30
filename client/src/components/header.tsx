@@ -83,6 +83,7 @@ export default function Header({ onSearchChange, onChatOpen }: HeaderProps) {
         onClose={() => setIsMobileMenuOpen(false)}
         navigationItems={navigationItems}
         currentLocation={location}
+        onChatOpen={onChatOpen}
       />
 
       <UploadModal 
