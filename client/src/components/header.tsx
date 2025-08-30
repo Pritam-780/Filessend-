@@ -41,7 +41,7 @@ export default function Header({ onSearchChange, onChatOpen }: HeaderProps) {
             <div className="flex-1 flex justify-center md:justify-start">
               <Link href="/">
                 <h1 className="text-2xl md:text-3xl font-bold text-primary tracking-tight cursor-pointer">
-                  AAILAR PROD
+                  Academic Avengers
                 </h1>
               </Link>
             </div>

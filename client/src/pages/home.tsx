@@ -92,7 +92,7 @@ export default function Home() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
+      <div className="min-h-screen bg-gray-50 animate-fadeIn">
         <Header 
           onSearchChange={setSearchQuery} 
           onChatOpen={() => setShowChatRoom(true)} 
@@ -116,7 +116,7 @@ export default function Home() {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
+    <div className="min-h-screen bg-gray-50 animate-fadeIn">
       <Header 
         onSearchChange={setSearchQuery} 
         onChatOpen={() => setShowChatRoom(true)} 

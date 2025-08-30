@@ -22,10 +22,10 @@ const icons = {
   sessions: Users,
 };
 
-export default function MobileMenu({ 
-  isOpen, 
-  onClose, 
-  navigationItems, 
+export default function MobileMenu({
+  isOpen,
+  onClose,
+  navigationItems,
   currentLocation,
   onChatOpen
 }: MobileMenuProps) {
@@ -35,7 +35,7 @@ export default function MobileMenu({
     } else {
       document.body.style.overflow = 'unset';
     }
-    
+
     return () => {
       document.body.style.overflow = 'unset';
     };
@@ -52,7 +52,7 @@ export default function MobileMenu({
         <div className="p-6">
           <div className="flex justify-between items-center mb-8">
             <h2 className="text-xl font-bold bg-gradient-to-r from-red-500 via-orange-500 to-yellow-500 bg-clip-text text-transparent animate-pulse">Academic Avengers</h2>
-            <Button 
+            <Button
               variant="ghost"
               size="sm"
               onClick={onClose}
@@ -66,7 +66,7 @@ export default function MobileMenu({
               const IconComponent = icons[item.section as keyof typeof icons];
               return (
                 <Link key={item.href} href={item.href}>
-                  <div 
+                  <div
                     onClick={onClose}
                     className={`flex items-center py-3 px-4 text-secondary hover:bg-gray-100 rounded-lg transition-colors font-medium cursor-pointer ${
                       currentLocation === item.href ? 'bg-gray-100 text-primary' : ''
@@ -78,8 +78,8 @@ export default function MobileMenu({
                 </Link>
               );
             })}
-            
-            <div 
+
+            <div
               onClick={() => {
                 if (onChatOpen) {
                   onChatOpen();
