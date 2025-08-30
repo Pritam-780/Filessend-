@@ -836,7 +836,7 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
                                 
                                 {/* Action buttons */}
                                 {hoveredMessage === msg.id && (
-                                  <div className={`absolute top-0 flex gap-1 ${isMyMessage ? '-left-16' : '-right-16'}`}>
+                                  <div className={`absolute top-0 flex gap-1 ${isMyMessage ? '-left-8' : '-right-8'}`}>
                                     <Button
                                       onClick={() => handleReplyToMessage(msg)}
                                       className="w-8 h-8 p-0 bg-gray-500 hover:bg-gray-600 text-white rounded-full shadow-lg"
@@ -844,14 +844,6 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
                                       data-testid={`button-reply-${msg.id}`}
                                     >
                                       <Reply className="h-4 w-4" />
-                                    </Button>
-                                    <Button
-                                      onClick={() => handleDeleteMessage(msg.id)}
-                                      className="w-8 h-8 p-0 bg-red-500 hover:bg-red-600 text-white rounded-full shadow-lg"
-                                      size="sm"
-                                      data-testid={`button-delete-${msg.id}`}
-                                    >
-                                      <X className="h-4 w-4" />
                                     </Button>
                                   </div>
                                 )}
