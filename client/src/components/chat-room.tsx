@@ -433,7 +433,7 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
     if (attachment.mimeType.startsWith('image/')) {
       const imageUrl = `/api/files/${attachment.id}/download`;
       return (
-        <div className="mt-2 max-w-xs group">
+        <div className="mt-2 max-w-xs">
           <div className="relative">
             <img 
               src={imageUrl} 
@@ -441,27 +441,27 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
               className="rounded-lg max-w-full h-auto cursor-pointer hover:opacity-90 transition-opacity"
               onClick={() => setPreviewFile(file)}
             />
-            <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-              <Button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleDeleteFile(attachment.id, attachment.originalName);
-                }}
-                className="w-8 h-8 p-0 bg-red-500 hover:bg-red-600 text-white rounded-full shadow-lg"
-                size="sm"
-                title="Delete file permanently"
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
-            </div>
           </div>
-          <p className="text-xs opacity-75 mt-1">{attachment.originalName}</p>
+          <div className="flex items-center justify-between mt-2">
+            <p className="text-xs opacity-75 flex-1 truncate">{attachment.originalName}</p>
+            <Button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleDeleteFile(attachment.id, attachment.originalName);
+              }}
+              className="w-6 h-6 p-0 bg-red-500 hover:bg-red-600 text-white rounded-full shadow-lg ml-2"
+              size="sm"
+              title="Delete file permanently"
+            >
+              <Trash2 className="h-3 w-3" />
+            </Button>
+          </div>
         </div>
       );
     }
     
     return (
-      <div className="mt-2 p-3 bg-white bg-opacity-10 rounded-lg max-w-xs group">
+      <div className="mt-2 p-3 bg-white bg-opacity-10 rounded-lg max-w-xs">
         <div className="flex items-center gap-2">
           {getFileIcon(attachment.mimeType)}
           <div className="flex-1 min-w-0">
@@ -482,7 +482,7 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
                 e.stopPropagation();
                 handleDeleteFile(attachment.id, attachment.originalName);
               }}
-              className="w-8 h-8 p-0 bg-red-500 hover:bg-red-600 text-white opacity-0 group-hover:opacity-100 transition-opacity"
+              className="w-8 h-8 p-0 bg-red-500 hover:bg-red-600 text-white"
               size="sm"
               title="Delete file permanently"
             >
