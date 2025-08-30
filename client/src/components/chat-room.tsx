@@ -1,6 +1,6 @@
 
 import { useState, useEffect, useRef } from "react";
-import { X, Send, Users, MessageCircle, Lock, Trash2, AlertTriangle, Reply, FileText, Folder, Search, Eye, Download, Filter, Image, FileSpreadsheet, ArrowLeft, Upload, Paperclip } from "lucide-react";
+import { X, Send, Users, MessageCircle, Lock, Trash2, AlertTriangle, Reply, FileText, Folder, Search, Eye, Download, Filter, Image, FileSpreadsheet, ArrowLeft, Upload, Paperclip, Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -58,19 +58,13 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
-  // Generate consistent color for each user (avoiding white)
+  // Generate consistent color for each user
   const getUserColor = (username: string) => {
     const colors = [
-      'bg-gradient-to-r from-red-500 to-pink-500',
-      'bg-gradient-to-r from-blue-500 to-cyan-500',
-      'bg-gradient-to-r from-green-500 to-emerald-500',
-      'bg-gradient-to-r from-purple-500 to-violet-500',
-      'bg-gradient-to-r from-orange-500 to-amber-500',
-      'bg-gradient-to-r from-indigo-500 to-blue-500',
-      'bg-gradient-to-r from-pink-500 to-rose-500',
-      'bg-gradient-to-r from-teal-500 to-green-500',
-      'bg-gradient-to-r from-yellow-500 to-orange-500',
-      'bg-gradient-to-r from-slate-600 to-gray-600'
+      '#e57373', '#f06292', '#ba68c8', '#9575cd', 
+      '#7986cb', '#64b5f6', '#4fc3f7', '#4dd0e1',
+      '#4db6ac', '#81c784', '#aed581', '#ffb74d',
+      '#ff8a65', '#a1887f', '#90a4ae'
     ];
     
     let hash = 0;
@@ -158,7 +152,7 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
         toast({
           title: "User Joined",
           description: `${data.username} joined the chat`,
-          className: "bg-gradient-to-r from-green-50 to-emerald-50 border-green-200",
+          className: "bg-green-50 border-green-200",
         });
       });
 
@@ -166,7 +160,7 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
         toast({
           title: "User Left", 
           description: `${data.username} left the chat`,
-          className: "bg-gradient-to-r from-orange-50 to-yellow-50 border-orange-200",
+          className: "bg-orange-50 border-orange-200",
         });
       });
 
@@ -183,7 +177,7 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
         toast({
           title: "All Messages Deleted",
           description: "All chat messages have been cleared",
-          className: "bg-gradient-to-r from-red-50 to-pink-50 border-red-200",
+          className: "bg-red-50 border-red-200",
         });
       });
 
@@ -197,12 +191,11 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
       });
 
       newSocket.on('file-uploaded', (fileData) => {
-        // Refresh file list when someone uploads a file
         loadFiles();
         toast({
           title: "New File",
           description: `${fileData.originalName} was uploaded`,
-          className: "bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200",
+          className: "bg-blue-50 border-blue-200",
         });
       });
 
@@ -257,14 +250,13 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
       password: password
     });
 
-    // Listen for successful join
     socket?.once('message-history', () => {
       setIsAuthenticated(true);
       setIsConnecting(false);
       toast({
         title: "Welcome to Chat!",
         description: `You're now connected as ${username}`,
-        className: "bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200",
+        className: "bg-blue-50 border-blue-200",
       });
     });
   };
@@ -291,7 +283,6 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
         };
       }
 
-      // Handle file attachment
       if (selectedFile) {
         const formData = new FormData();
         formData.append('files', selectedFile);
@@ -311,9 +302,7 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
               mimeType: uploadedFiles[0].mimeType,
               size: uploadedFiles[0].size
             };
-            // Refresh file list
             loadFiles();
-            
           }
         } else {
           throw new Error('Failed to upload file');
@@ -343,7 +332,6 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
 
   const handleDeleteMessage = (messageId: string) => {
     if (!socket || !isAuthenticated) return;
-    
     socket.emit('delete-message', { messageId });
   };
 
@@ -370,7 +358,6 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      // Check file size (max 10MB)
       if (file.size > 10 * 1024 * 1024) {
         toast({
           title: "File Too Large",
@@ -410,7 +397,7 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
     }
     
     return (
-      <div className="mt-2 p-3 bg-white bg-opacity-20 rounded-lg max-w-xs">
+      <div className="mt-2 p-3 bg-white bg-opacity-10 rounded-lg max-w-xs">
         <div className="flex items-center gap-2">
           {getFileIcon(attachment.mimeType)}
           <div className="flex-1 min-w-0">
@@ -477,332 +464,342 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50">
-      <div className="h-screen w-screen bg-gradient-to-br from-slate-900 via-blue-900 to-purple-900 flex flex-col">
-        {/* Top Header - Responsive */}
-        <div className="p-2 sm:p-3 lg:p-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg">
-          <div className="flex justify-between items-center">
-            <div className="flex items-center gap-1 sm:gap-2 lg:gap-3">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleClose}
-                className="p-1 sm:p-2 text-white hover:bg-white hover:bg-opacity-20"
-                data-testid="button-back-home"
-              >
-                <ArrowLeft className="h-3 w-3 sm:h-4 sm:w-4 lg:h-5 lg:w-5" />
-              </Button>
-              <MessageCircle className="h-4 w-4 sm:h-5 sm:w-5 lg:h-6 lg:w-6" />
-              <h3 className="text-xs sm:text-sm md:text-lg lg:text-xl xl:text-2xl font-bold bg-gradient-to-r from-green-400 via-blue-400 to-purple-400 bg-clip-text text-transparent animate-pulse">Chat Room</h3>
-              {isAuthenticated && (
-                <div className="flex items-center gap-1 bg-white bg-opacity-20 rounded-full px-1 py-0.5 sm:px-2 sm:py-1">
-                  <Users className="h-2 w-2 sm:h-3 sm:w-3" />
-                  <span className="text-xs font-medium">{userCount}</span>
-                </div>
-              )}
+    <div className="fixed inset-0 z-50 flex">
+      {/* Telegram-style Layout */}
+      <div className="flex flex-col w-full h-full bg-white">
+        
+        {/* Fixed Header - Telegram Style */}
+        <div className="flex-shrink-0 h-14 bg-[#517da2] text-white shadow-md border-b border-[#4a6d94]">
+          <div className="flex items-center h-full px-4">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleClose}
+              className="p-2 text-white hover:bg-white hover:bg-opacity-20 rounded-full mr-3"
+              data-testid="button-back-home"
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+            
+            <div className="flex items-center flex-1">
+              <div className="w-9 h-9 bg-[#3d5a7a] rounded-full flex items-center justify-center mr-3">
+                <MessageCircle className="h-5 w-5" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="font-semibold text-white text-lg leading-tight">Chat Room</h3>
+                {isAuthenticated && (
+                  <p className="text-[#a8c4e8] text-sm">
+                    {userCount} {userCount === 1 ? 'member' : 'members'} online
+                  </p>
+                )}
+              </div>
             </div>
-            <div className="flex items-center gap-1 sm:gap-2">
+
+            <div className="flex items-center gap-2">
               {isAuthenticated && (
                 <>
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={() => setShowFileBrowser(!showFileBrowser)}
-                    className="bg-green-500 hover:bg-green-600 text-white px-1 py-0.5 sm:px-2 sm:py-1 lg:px-3 lg:py-2 rounded-md text-xs sm:text-sm"
+                    className="p-2 text-white hover:bg-white hover:bg-opacity-20 rounded-full"
                     data-testid="button-toggle-files"
                   >
-                    <Folder className="h-2 w-2 sm:h-3 sm:w-3 lg:h-4 lg:w-4 sm:mr-1" />
-                    <span className="hidden sm:inline">Files</span>
+                    <Folder className="h-5 w-5" />
                   </Button>
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={() => setShowDeleteAllModal(true)}
-                    className="bg-red-500 hover:bg-red-600 text-white px-1 py-0.5 sm:px-2 sm:py-1 lg:px-3 lg:py-2 rounded-md text-xs sm:text-sm"
+                    className="p-2 text-white hover:bg-white hover:bg-opacity-20 rounded-full"
                   >
-                    <Trash2 className="h-2 w-2 sm:h-3 sm:w-3 lg:h-4 lg:w-4 sm:mr-1" />
-                    <span className="hidden sm:inline">Clear</span>
+                    <Trash2 className="h-5 w-5" />
                   </Button>
                 </>
               )}
-              <Button 
-                variant="ghost"
-                size="sm"
-                onClick={handleClose}
-                className="p-1 sm:p-2 text-white hover:bg-white hover:bg-opacity-20"
-                data-testid="button-close-chat"
-              >
-                <X className="h-3 w-3 sm:h-4 sm:w-4 lg:h-5 lg:w-5" />
-              </Button>
             </div>
           </div>
         </div>
 
-        {/* Main Content Area - Responsive Layout */}
-        <div className="flex-1 flex overflow-hidden relative">
-
-          {!isAuthenticated ? (
-            /* Login Form - Responsive */
-            <div className="flex-1 flex items-center justify-center p-2 sm:p-4 lg:p-6">
-              <div className="bg-white rounded-lg shadow-lg p-4 sm:p-6 lg:p-8 w-full max-w-xs sm:max-w-sm lg:max-w-md border border-blue-200">
-                <div className="text-center mb-6">
-                  <Lock className="h-8 w-8 text-blue-600 mx-auto mb-2" />
-                  <h4 className="text-lg font-bold text-gray-800 mb-2">Join Chat Room</h4>
-                  <p className="text-sm text-gray-600">Enter your details to join</p>
-                </div>
-
-                <form onSubmit={handleJoinChat} className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Username
-                    </label>
-                    <Input
-                      type="text"
-                      value={username}
-                      onChange={(e) => setUsername(e.target.value)}
-                      placeholder="Enter your username"
-                      className="w-full border-blue-300 focus:border-blue-500 focus:ring-blue-500"
-                      maxLength={20}
-                      disabled={isConnecting}
-                      required
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Password
-                    </label>
-                    <Input
-                      type="password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      placeholder="Enter chat password"
-                      className="w-full border-blue-300 focus:border-blue-500 focus:ring-blue-500"
-                      disabled={isConnecting}
-                      required
-                    />
-                  </div>
-
+        {/* Main Content Area */}
+        <div className="flex flex-1 overflow-hidden">
+          
+          {/* File Browser Sidebar - Telegram Style */}
+          {showFileBrowser && isAuthenticated && (
+            <div className="w-80 bg-white border-r border-gray-200 flex flex-col flex-shrink-0">
+              <div className="p-4 border-b border-gray-200 bg-gray-50">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-lg font-semibold text-gray-800">Files</h3>
                   <Button
-                    type="submit"
-                    className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-medium py-2"
-                    disabled={isConnecting}
+                    onClick={() => setShowFileBrowser(false)}
+                    className="w-8 h-8 p-0 bg-gray-200 hover:bg-gray-300 text-gray-600 rounded-full"
+                    size="sm"
                   >
-                    {isConnecting ? (
-                      <div className="flex items-center justify-center gap-2">
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                        Joining...
-                      </div>
-                    ) : (
-                      "Join Chat"
-                    )}
+                    <X className="h-4 w-4" />
                   </Button>
-                </form>
+                </div>
+                
+                <div className="relative mb-3">
+                  <Search className="h-4 w-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                  <Input
+                    type="text"
+                    placeholder="Search files..."
+                    value={fileSearchQuery}
+                    onChange={(e) => setFileSearchQuery(e.target.value)}
+                    className="pl-10 bg-white border-gray-300 focus:border-[#517da2] focus:ring-[#517da2]"
+                    data-testid="input-file-search"
+                  />
+                </div>
+                
+                <div className="space-y-1">
+                  {categories.map((cat) => (
+                    <Button
+                      key={cat.id}
+                      onClick={() => setSelectedCategory(cat.id)}
+                      className={`w-full justify-start text-left p-2 rounded-md ${
+                        selectedCategory === cat.id
+                          ? 'bg-[#517da2] hover:bg-[#4a6d94] text-white'
+                          : 'bg-transparent hover:bg-gray-100 text-gray-700'
+                      }`}
+                      size="sm"
+                      data-testid={`button-category-${cat.id}`}
+                    >
+                      <cat.icon className="h-4 w-4 mr-2" />
+                      {cat.name}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+              
+              <div className="flex-1 overflow-y-auto p-4 space-y-2">
+                {filteredFiles.length === 0 ? (
+                  <div className="text-center text-gray-400 py-8">
+                    <Folder className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                    <p>No files found</p>
+                  </div>
+                ) : (
+                  filteredFiles.map((file) => (
+                    <div
+                      key={file.id}
+                      className="bg-gray-50 hover:bg-gray-100 rounded-lg p-3 cursor-pointer transition-colors group border border-gray-200"
+                      data-testid={`file-item-${file.id}`}
+                    >
+                      <div className="flex items-center gap-3 mb-2">
+                        {getFileIcon(file.mimeType)}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium truncate text-gray-800">{file.originalName}</p>
+                          <p className="text-xs text-gray-500">{(file.size / 1024 / 1024).toFixed(2)} MB • {file.category}</p>
+                        </div>
+                      </div>
+                      <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Button
+                          onClick={() => setPreviewFile(file)}
+                          className="flex-1 bg-[#517da2] hover:bg-[#4a6d94] text-white text-xs py-1"
+                          size="sm"
+                          data-testid={`button-preview-${file.id}`}
+                        >
+                          <Eye className="h-3 w-3 mr-1" />
+                          Preview
+                        </Button>
+                        <Button
+                          onClick={() => {
+                            const link = document.createElement('a');
+                            link.href = `/api/files/${file.id}/download`;
+                            link.download = file.originalName;
+                            document.body.appendChild(link);
+                            link.click();
+                            document.body.removeChild(link);
+                          }}
+                          className="flex-1 bg-green-600 hover:bg-green-700 text-white text-xs py-1"
+                          size="sm"
+                          data-testid={`button-download-${file.id}`}
+                        >
+                          <Download className="h-3 w-3 mr-1" />
+                          Download
+                        </Button>
+                      </div>
+                    </div>
+                  ))
+                )}
               </div>
             </div>
-          ) : (
-            /* Chat Interface with File Browser */
-            <>
-              {/* File Browser Sidebar - Responsive */}
-              {showFileBrowser && (
-                <div className={`
-                  ${showFileBrowser ? 'absolute md:relative' : 'hidden'} 
-                  ${showFileBrowser ? 'inset-0 md:inset-auto' : ''} 
-                  w-full sm:w-64 md:w-72 lg:w-80 xl:w-96 
-                  bg-gray-800 text-white border-r border-gray-700 flex flex-col z-20
-                  md:z-auto
-                `}>
-                  <div className="p-3 sm:p-4 border-b border-gray-700">
-                    <div className="flex items-center justify-between mb-3">
-                      <h3 className="text-sm sm:text-lg font-bold text-center flex-1">📁 File Browser</h3>
-                      <Button
-                        onClick={() => setShowFileBrowser(false)}
-                        className="md:hidden w-6 h-6 p-0 bg-gray-700 hover:bg-gray-600 text-white rounded-full"
-                        size="sm"
-                      >
-                        <X className="h-3 w-3" />
-                      </Button>
+          )}
+
+          {/* Chat Area - Telegram Style */}
+          <div className="flex-1 flex flex-col bg-[#e6ebee]">
+            
+            {!isAuthenticated ? (
+              /* Login Form */
+              <div className="flex-1 flex items-center justify-center p-6">
+                <div className="bg-white rounded-xl shadow-xl p-8 w-full max-w-md border">
+                  <div className="text-center mb-6">
+                    <div className="w-20 h-20 bg-[#517da2] rounded-full flex items-center justify-center mx-auto mb-4">
+                      <Lock className="h-10 w-10 text-white" />
                     </div>
-                    
-                    {/* Search */}
-                    <div className="relative mb-3">
-                      <Search className="h-4 w-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                    <h4 className="text-2xl font-bold text-gray-800 mb-2">Join Chat</h4>
+                    <p className="text-gray-600">Enter your credentials to continue</p>
+                  </div>
+
+                  <form onSubmit={handleJoinChat} className="space-y-4">
+                    <div>
                       <Input
                         type="text"
-                        placeholder="Search files..."
-                        value={fileSearchQuery}
-                        onChange={(e) => setFileSearchQuery(e.target.value)}
-                        className="pl-10 bg-gray-700 border-gray-600 text-white placeholder-gray-400"
-                        data-testid="input-file-search"
+                        value={username}
+                        onChange={(e) => setUsername(e.target.value)}
+                        placeholder="Username"
+                        className="w-full h-12 border-gray-300 focus:border-[#517da2] focus:ring-[#517da2] rounded-lg"
+                        maxLength={20}
+                        disabled={isConnecting}
+                        required
                       />
                     </div>
                     
-                    {/* Category Filter */}
-                    <div className="space-y-2">
-                      {categories.map((cat) => (
-                        <Button
-                          key={cat.id}
-                          onClick={() => setSelectedCategory(cat.id)}
-                          className={`w-full justify-start text-left p-2 ${
-                            selectedCategory === cat.id
-                              ? 'bg-blue-600 hover:bg-blue-700'
-                              : 'bg-gray-700 hover:bg-gray-600'
-                          }`}
-                          size="sm"
-                          data-testid={`button-category-${cat.id}`}
-                        >
-                          <cat.icon className="h-4 w-4 mr-2" />
-                          {cat.name}
-                        </Button>
-                      ))}
+                    <div>
+                      <Input
+                        type="password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        placeholder="Password"
+                        className="w-full h-12 border-gray-300 focus:border-[#517da2] focus:ring-[#517da2] rounded-lg"
+                        disabled={isConnecting}
+                        required
+                      />
                     </div>
-                  </div>
-                  
-                  {/* File List */}
-                  <div className="flex-1 overflow-y-auto p-4 space-y-2">
-                    {filteredFiles.length === 0 ? (
-                      <div className="text-center text-gray-400 py-8">
-                        <Folder className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                        <p>No files found</p>
-                      </div>
-                    ) : (
-                      filteredFiles.map((file) => (
-                        <div
-                          key={file.id}
-                          className="bg-gray-700 rounded-lg p-3 hover:bg-gray-600 cursor-pointer transition-all group"
-                          data-testid={`file-item-${file.id}`}
-                        >
-                          <div className="flex items-center gap-3 mb-2">
-                            {getFileIcon(file.mimeType)}
-                            <span className="text-sm font-medium truncate flex-1">{file.originalName}</span>
-                          </div>
-                          <div className="text-xs text-gray-400 mb-2">
-                            {(file.size / 1024 / 1024).toFixed(2)} MB • {file.category}
-                          </div>
-                          <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <Button
-                              onClick={() => setPreviewFile(file)}
-                              className="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-xs py-1"
-                              size="sm"
-                              data-testid={`button-preview-${file.id}`}
-                            >
-                              <Eye className="h-3 w-3 mr-1" />
-                              Preview
-                            </Button>
-                            <Button
-                              onClick={() => {
-                                const link = document.createElement('a');
-                                link.href = `/api/files/${file.id}/download`;
-                                link.download = file.originalName;
-                                document.body.appendChild(link);
-                                link.click();
-                                document.body.removeChild(link);
-                              }}
-                              className="flex-1 bg-green-600 hover:bg-green-700 text-white text-xs py-1"
-                              size="sm"
-                              data-testid={`button-download-${file.id}`}
-                            >
-                              <Download className="h-3 w-3 mr-1" />
-                              Download
-                            </Button>
-                          </div>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                </div>
-              )}
 
-              {/* Chat Area */}
-              <div className="flex-1 flex flex-col bg-gradient-to-br from-gray-50 to-blue-50">
-                {/* Messages */}
-                <div className="flex-1 overflow-y-auto p-4 space-y-3">
+                    <Button
+                      type="submit"
+                      className="w-full h-12 bg-[#517da2] hover:bg-[#4a6d94] text-white font-medium rounded-lg"
+                      disabled={isConnecting}
+                    >
+                      {isConnecting ? (
+                        <div className="flex items-center justify-center gap-2">
+                          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                          Connecting...
+                        </div>
+                      ) : (
+                        "Join Chat"
+                      )}
+                    </Button>
+                  </form>
+                </div>
+              </div>
+            ) : (
+              <>
+                {/* Messages Area - Fixed Height */}
+                <div className="flex-1 overflow-y-auto p-4 pb-safe">
                   {messages.length === 0 ? (
                     <div className="text-center text-gray-500 mt-8">
-                      <MessageCircle className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                      <p>No messages yet. Start the conversation!</p>
+                      <MessageCircle className="h-16 w-16 mx-auto mb-4 opacity-30" />
+                      <p className="text-lg">No messages yet</p>
+                      <p className="text-sm">Start the conversation!</p>
                     </div>
                   ) : (
-                    messages.map((msg) => (
-                      <div
-                        key={msg.id}
-                        className={`flex ${msg.username === username ? 'justify-end' : 'justify-start'} group px-2 sm:px-0`}
-                        onMouseEnter={() => setHoveredMessage(msg.id)}
-                        onMouseLeave={() => setHoveredMessage(null)}
-                      >
-                        <div className="relative max-w-[85%] sm:max-w-sm md:max-w-md lg:max-w-lg xl:max-w-xl 2xl:max-w-2xl">
-                          {/* Reply indicator */}
-                          {msg.replyTo && (
-                            <div className="mb-2 p-2 bg-gray-100 border-l-4 border-gray-400 rounded-r-lg text-xs">
-                              <div className="flex items-center gap-1 text-gray-600 mb-1">
-                                <Reply className="h-3 w-3" />
-                                <span className="font-medium">{msg.replyTo.username}</span>
+                    <div className="space-y-2">
+                      {messages.map((msg, index) => {
+                        const isMyMessage = msg.username === username;
+                        const showTime = index === 0 || 
+                          (messages[index - 1] && messages[index - 1].timestamp < msg.timestamp - 60000);
+                        
+                        return (
+                          <div key={msg.id}>
+                            {showTime && (
+                              <div className="text-center my-4">
+                                <span className="bg-gray-300 text-gray-600 px-3 py-1 rounded-full text-xs">
+                                  {new Date(msg.timestamp).toLocaleDateString()} {formatTime(msg.timestamp)}
+                                </span>
                               </div>
-                              <p className="text-gray-700 italic truncate">{msg.replyTo.message}</p>
+                            )}
+                            
+                            <div
+                              className={`flex ${isMyMessage ? 'justify-end' : 'justify-start'} group px-1`}
+                              onMouseEnter={() => setHoveredMessage(msg.id)}
+                              onMouseLeave={() => setHoveredMessage(null)}
+                            >
+                              <div className="relative max-w-[80%]">
+                                {/* Reply indicator */}
+                                {msg.replyTo && (
+                                  <div className={`mb-1 p-2 rounded-t-lg border-l-4 text-xs ${
+                                    isMyMessage 
+                                      ? 'bg-[#dcf8c6] border-[#4fc3f7]' 
+                                      : 'bg-white border-gray-400'
+                                  }`}>
+                                    <div className="flex items-center gap-1 text-gray-600 mb-1">
+                                      <Reply className="h-3 w-3" />
+                                      <span className="font-medium">{msg.replyTo.username}</span>
+                                    </div>
+                                    <p className="text-gray-700 italic truncate">{msg.replyTo.message}</p>
+                                  </div>
+                                )}
+                                
+                                <div
+                                  className={`px-3 py-2 rounded-lg shadow-sm cursor-pointer transition-all ${
+                                    isMyMessage
+                                      ? 'bg-[#dcf8c6] text-gray-800 rounded-br-sm'
+                                      : 'bg-white text-gray-800 rounded-bl-sm'
+                                  } ${msg.replyTo ? (isMyMessage ? 'rounded-t-none' : 'rounded-t-none') : ''}`}
+                                  onClick={() => handleReplyToMessage(msg)}
+                                >
+                                  <div className="flex items-center justify-between mb-1">
+                                    {!isMyMessage && (
+                                      <span 
+                                        className="text-sm font-semibold truncate max-w-32"
+                                        style={{ color: getUserColor(msg.username) }}
+                                      >
+                                        {msg.username}
+                                      </span>
+                                    )}
+                                    <span className="text-xs text-gray-500 ml-auto">
+                                      {formatTime(msg.timestamp)}
+                                    </span>
+                                  </div>
+                                  <p className="text-sm leading-relaxed break-words">{msg.message}</p>
+                                  {msg.attachment && renderFileAttachment(msg.attachment)}
+                                </div>
+                                
+                                {/* Action buttons */}
+                                {hoveredMessage === msg.id && (
+                                  <div className={`absolute top-0 flex gap-1 ${isMyMessage ? '-left-16' : '-right-16'}`}>
+                                    <Button
+                                      onClick={() => handleReplyToMessage(msg)}
+                                      className="w-8 h-8 p-0 bg-gray-500 hover:bg-gray-600 text-white rounded-full shadow-lg"
+                                      size="sm"
+                                      data-testid={`button-reply-${msg.id}`}
+                                    >
+                                      <Reply className="h-4 w-4" />
+                                    </Button>
+                                    <Button
+                                      onClick={() => handleDeleteMessage(msg.id)}
+                                      className="w-8 h-8 p-0 bg-red-500 hover:bg-red-600 text-white rounded-full shadow-lg"
+                                      size="sm"
+                                      data-testid={`button-delete-${msg.id}`}
+                                    >
+                                      <X className="h-4 w-4" />
+                                    </Button>
+                                  </div>
+                                )}
+                              </div>
                             </div>
-                          )}
-                          
-                          <div
-                            className={`px-2 py-2 sm:px-3 sm:py-2 md:px-4 md:py-3 rounded-lg cursor-pointer transition-all text-white shadow-md ${
-                              msg.username === username
-                                ? 'bg-gradient-to-r from-blue-500 to-purple-500'
-                                : getUserColor(msg.username)
-                            }`}
-                            onClick={() => handleReplyToMessage(msg)}
-                          >
-                            <div className="flex items-center gap-1 sm:gap-2 mb-1">
-                              <span className="text-xs sm:text-sm font-medium text-white opacity-90 truncate max-w-24 sm:max-w-32">
-                                {msg.username}
-                              </span>
-                              <span className="text-xs text-white opacity-75 flex-shrink-0">
-                                {formatTime(msg.timestamp)}
-                              </span>
-                            </div>
-                            <p className="text-xs sm:text-sm md:text-base break-words leading-relaxed">{msg.message}</p>
-                            {msg.attachment && renderFileAttachment(msg.attachment)}
                           </div>
-                          
-                          {/* Action buttons - appears on hover */}
-                          {hoveredMessage === msg.id && (
-                            <div className="absolute -top-2 -right-2 flex gap-1">
-                              <Button
-                                onClick={() => handleReplyToMessage(msg)}
-                                className="w-7 h-7 p-0 bg-blue-500 hover:bg-blue-600 text-white rounded-full shadow-lg opacity-90 hover:opacity-100 transition-all"
-                                size="sm"
-                                data-testid={`button-reply-${msg.id}`}
-                              >
-                                <Reply className="h-3 w-3" />
-                              </Button>
-                              <Button
-                                onClick={() => handleDeleteMessage(msg.id)}
-                                className="w-7 h-7 p-0 bg-red-500 hover:bg-red-600 text-white rounded-full shadow-lg opacity-90 hover:opacity-100 transition-all"
-                                size="sm"
-                                data-testid={`button-delete-${msg.id}`}
-                              >
-                                <X className="h-3 w-3" />
-                              </Button>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    ))
+                        );
+                      })}
+                      <div ref={messagesEndRef} />
+                    </div>
                   )}
-                  <div ref={messagesEndRef} />
                 </div>
 
-                {/* Message Input - Responsive */}
-                <div className="p-2 sm:p-3 md:p-4 bg-white border-t border-gray-200 shadow-lg">
+                {/* Fixed Message Input Area - Telegram Style */}
+                <div className="flex-shrink-0 bg-white border-t border-gray-200 p-4 pb-safe">
                   {/* Reply Preview */}
                   {replyingTo && (
-                    <div className="mb-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center gap-2 text-blue-700">
+                    <div className="mb-3 p-3 bg-blue-50 border-l-4 border-[#517da2] rounded-r-lg">
+                      <div className="flex items-center justify-between mb-1">
+                        <div className="flex items-center gap-2 text-[#517da2]">
                           <Reply className="h-4 w-4" />
-                          <span className="text-sm font-medium">Replying to {replyingTo.username}</span>
+                          <span className="text-sm font-medium">Reply to {replyingTo.username}</span>
                         </div>
                         <Button
                           onClick={cancelReply}
-                          className="w-5 h-5 p-0 bg-gray-400 hover:bg-gray-500 text-white rounded-full"
+                          className="w-6 h-6 p-0 bg-gray-400 hover:bg-gray-500 text-white rounded-full"
                           size="sm"
                           data-testid="button-cancel-reply"
                         >
@@ -815,15 +812,15 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
 
                   {/* File Selection Preview */}
                   {selectedFile && (
-                    <div className="mb-3 p-3 bg-green-50 border border-green-200 rounded-lg">
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center gap-2 text-green-700">
+                    <div className="mb-3 p-3 bg-green-50 border-l-4 border-green-500 rounded-r-lg">
+                      <div className="flex items-center justify-between mb-1">
+                        <div className="flex items-center gap-2 text-green-600">
                           <Paperclip className="h-4 w-4" />
                           <span className="text-sm font-medium">File attached</span>
                         </div>
                         <Button
                           onClick={removeSelectedFile}
-                          className="w-5 h-5 p-0 bg-gray-400 hover:bg-gray-500 text-white rounded-full"
+                          className="w-6 h-6 p-0 bg-gray-400 hover:bg-gray-500 text-white rounded-full"
                           size="sm"
                           data-testid="button-remove-file"
                         >
@@ -840,14 +837,19 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
                     </div>
                   )}
                   
-                  <form onSubmit={handleSendMessage} className="flex gap-1 sm:gap-2 md:gap-3">
+                  {/* Input Row */}
+                  <form onSubmit={handleSendMessage} className="flex items-end gap-2">
                     <div className="flex-1 relative">
                       <Input
                         type="text"
                         value={currentMessage}
                         onChange={(e) => setCurrentMessage(e.target.value)}
-                        placeholder={replyingTo ? `Reply to ${replyingTo.username}...` : selectedFile ? "Add a message (optional)..." : "Type your message..."}
-                        className="w-full border-gray-300 focus:border-blue-500 focus:ring-blue-500 text-xs sm:text-sm md:text-base py-2 sm:py-2.5 md:py-3 pr-12"
+                        placeholder={
+                          replyingTo ? `Reply to ${replyingTo.username}...` : 
+                          selectedFile ? "Add a message (optional)..." : 
+                          "Message"
+                        }
+                        className="w-full h-12 border-gray-300 focus:border-[#517da2] focus:ring-[#517da2] rounded-full px-4 pr-12 bg-white"
                         maxLength={1000}
                         disabled={!socket || isUploading}
                         data-testid="input-message"
@@ -869,29 +871,29 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
                       type="button"
                       onClick={() => fileInputRef.current?.click()}
                       disabled={!socket || isUploading}
-                      className="bg-green-600 hover:bg-green-700 text-white px-2 py-2 sm:px-3 sm:py-2.5 md:px-4 md:py-3 flex-shrink-0"
+                      className="w-12 h-12 p-0 bg-gray-400 hover:bg-gray-500 text-white rounded-full flex-shrink-0"
                       data-testid="button-upload"
                     >
-                      <Paperclip className="h-3 w-3 sm:h-4 sm:w-4" />
+                      <Paperclip className="h-5 w-5" />
                     </Button>
                     
                     <Button
                       type="submit"
                       disabled={(!currentMessage.trim() && !selectedFile) || !socket || isUploading}
-                      className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-3 py-2 sm:px-4 sm:py-2.5 md:px-6 md:py-3 flex-shrink-0"
+                      className="w-12 h-12 p-0 bg-[#517da2] hover:bg-[#4a6d94] text-white rounded-full flex-shrink-0"
                       data-testid="button-send"
                     >
                       {isUploading ? (
-                        <div className="animate-spin rounded-full h-3 w-3 sm:h-4 sm:w-4 border-b-2 border-white"></div>
+                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
                       ) : (
-                        <Send className="h-3 w-3 sm:h-4 sm:w-4" />
+                        <Send className="h-5 w-5" />
                       )}
                     </Button>
                   </form>
                 </div>
-              </div>
-            </>
-          )}
+              </>
+            )}
+          </div>
         </div>
 
         {/* File Preview Modal */}
@@ -903,77 +905,77 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
 
         {/* Delete All Messages Modal */}
         <Dialog open={showDeleteAllModal} onOpenChange={setShowDeleteAllModal}>
-            <DialogContent className="sm:max-w-[400px] bg-gradient-to-br from-red-50 via-white to-orange-50 border-2 border-red-200 shadow-2xl">
-              <DialogHeader>
-                <DialogTitle className="flex items-center gap-2 text-red-700 text-xl font-bold">
-                  <AlertTriangle className="h-6 w-6" />
-                  Delete All Messages
-                </DialogTitle>
-                <DialogDescription className="text-gray-700 mt-2">
-                  This action will permanently delete all messages in the chat room.
-                </DialogDescription>
-              </DialogHeader>
+          <DialogContent className="sm:max-w-[400px] bg-white border shadow-xl">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2 text-red-600 text-xl font-bold">
+                <AlertTriangle className="h-6 w-6" />
+                Delete All Messages
+              </DialogTitle>
+              <DialogDescription className="text-gray-600 mt-2">
+                This action will permanently delete all messages in the chat room.
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="space-y-4 mt-4">
+              <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                <p className="text-sm text-red-700 font-medium">
+                  Warning: This will delete all {messages.length} messages in the chat room.
+                </p>
+              </div>
               
-              <div className="space-y-4 mt-4">
-                <div className="bg-red-100 border border-red-300 rounded-lg p-3">
-                  <p className="text-sm text-red-800 font-medium">
-                    Warning: This will delete all {messages.length} messages in the chat room.
-                  </p>
+              <form onSubmit={handleDeleteAllMessages} className="space-y-4">
+                <div className="space-y-2">
+                  <label htmlFor="deletePassword" className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                    <Lock className="h-4 w-4" />
+                    Enter Password
+                  </label>
+                  <Input
+                    id="deletePassword"
+                    type="password"
+                    value={deleteAllPassword}
+                    onChange={(e) => setDeleteAllPassword(e.target.value)}
+                    placeholder="Enter password to confirm"
+                    className="h-12 border-gray-300 focus:border-red-500 focus:ring-red-500 rounded-lg"
+                    disabled={isDeletingAll}
+                    required
+                  />
                 </div>
                 
-                <form onSubmit={handleDeleteAllMessages} className="space-y-4">
-                  <div className="space-y-2">
-                    <label htmlFor="deletePassword" className="text-sm font-medium text-gray-700 flex items-center gap-2">
-                      <Lock className="h-4 w-4" />
-                      Enter Password
-                    </label>
-                    <Input
-                      id="deletePassword"
-                      type="password"
-                      value={deleteAllPassword}
-                      onChange={(e) => setDeleteAllPassword(e.target.value)}
-                      placeholder="Enter password to confirm"
-                      className="border-red-300 focus:border-red-500 focus:ring-red-500"
-                      disabled={isDeletingAll}
-                      required
-                    />
-                  </div>
-                  
-                  <div className="flex gap-3 pt-2">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => {
-                        setShowDeleteAllModal(false);
-                        setDeleteAllPassword("");
-                      }}
-                      className="flex-1 border-gray-300 hover:bg-gray-50"
-                      disabled={isDeletingAll}
-                    >
-                      Cancel
-                    </Button>
-                    <Button
-                      type="submit"
-                      className="flex-1 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white font-medium shadow-lg"
-                      disabled={isDeletingAll || !deleteAllPassword}
-                    >
-                      {isDeletingAll ? (
-                        <div className="flex items-center gap-2">
-                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                          Deleting...
-                        </div>
-                      ) : (
-                        <div className="flex items-center gap-2">
-                          <Trash2 className="h-4 w-4" />
-                          Delete All
-                        </div>
-                      )}
-                    </Button>
-                  </div>
-                </form>
-              </div>
-            </DialogContent>
-          </Dialog>
+                <div className="flex gap-3 pt-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      setShowDeleteAllModal(false);
+                      setDeleteAllPassword("");
+                    }}
+                    className="flex-1 h-12 border-gray-300 hover:bg-gray-50 rounded-lg"
+                    disabled={isDeletingAll}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="submit"
+                    className="flex-1 h-12 bg-red-600 hover:bg-red-700 text-white font-medium shadow-lg rounded-lg"
+                    disabled={isDeletingAll || !deleteAllPassword}
+                  >
+                    {isDeletingAll ? (
+                      <div className="flex items-center gap-2">
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                        Deleting...
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <Trash2 className="h-4 w-4" />
+                        Delete All
+                      </div>
+                    )}
+                  </Button>
+                </div>
+              </form>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );
