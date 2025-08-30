@@ -3,6 +3,16 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 text-foreground font-sans;
+    background-attachment: fixed;
+  }
+}
+
 :root {
   --background: hsl(0 0% 100%);
   --foreground: hsl(210 25% 7.8431%);
