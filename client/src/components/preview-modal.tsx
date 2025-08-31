@@ -13,12 +13,17 @@ export default function PreviewModal({ isOpen, onClose, file }: PreviewModalProp
 
   const handleDownload = () => {
     if (!file) return;
-    const link = document.createElement('a');
-    link.href = `/api/files/${file.id}/download`;
-    link.download = file.originalName;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    try {
+      const link = document.createElement('a');
+      link.href = `/api/files/${file.id}/download`;
+      link.download = file.originalName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (error) {
+      console.error('Download failed:', error);
+      alert('Failed to download file. Please try again.');
+    }
   };
 
   const renderPreview = () => {

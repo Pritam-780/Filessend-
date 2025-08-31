@@ -93,10 +93,22 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
         filterFiles(allFiles, fileSearchQuery, selectedCategory);
       } else {
         console.error('Failed to load files:', response.status);
+        // Only show error for serious failures
+        if (response.status >= 500) {
+          toast({
+            title: "Server Error",
+            description: "Failed to load files. Please refresh the page.",
+            variant: "destructive",
+          });
+        }
       }
     } catch (error) {
       console.error('Failed to load files:', error);
-      // Don't show error toast for file loading failures to avoid user confusion
+      toast({
+        title: "Connection Error",
+        description: "Unable to connect to server. Please check your connection.",
+        variant: "destructive",
+      });
     }
   };
 

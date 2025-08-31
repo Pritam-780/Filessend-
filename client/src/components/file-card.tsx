@@ -39,14 +39,20 @@ export default function FileCard({ file, onPreview, onDelete }: FileCardProps) {
   };
 
   const handleDownload = () => {
-    const url = fileStorage.getFileUrl(file);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = file.originalName;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+    try {
+      const url = fileStorage.getFileUrl(file);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = file.originalName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Download failed:', error);
+      // Show user-friendly error message
+      alert('Failed to download file. Please try again.');
+    }
   };
 
   const handleDelete = () => {
