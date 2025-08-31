@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link } from "wouter";
-import { Search, Grid, List, GraduationCap, BookOpen, Users, Plus } from "lucide-react";
+import { Search, Grid, List, GraduationCap, BookOpen, Users, Plus, MessageCircle } from "lucide-react";
 import Header from "@/components/header";
 import FileCard from "@/components/file-card";
 import PreviewModal from "@/components/preview-modal";
@@ -148,13 +148,22 @@ export default function Home() {
           <p className="text-lg md:text-xl text-gray-700 mb-8 max-w-3xl mx-auto font-medium">
 Your colorful digital library for organizing and accessing academic books, relaxing reads, and professional resources with vibrant style.
           </p>
-          <Button
-            onClick={() => setShowUploadModal(true)}
-            className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white px-8 py-3 rounded-xl text-lg font-bold hover:from-blue-700 hover:via-indigo-700 hover:to-purple-700 shadow-2xl transform hover:scale-105 transition-all duration-300"
-          >
-            <Plus className="h-5 w-5 mr-2" />
-            Upload Your First Book
-          </Button>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+            <Button
+              onClick={() => setShowUploadModal(true)}
+              className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white px-8 py-3 rounded-xl text-lg font-bold hover:from-blue-700 hover:via-indigo-700 hover:to-purple-700 shadow-2xl transform hover:scale-105 transition-all duration-300"
+            >
+              <Plus className="h-5 w-5 mr-2" />
+              Upload Your First Book
+            </Button>
+            <Button
+              onClick={() => setShowChatRoom(true)}
+              className="bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 text-white px-8 py-3 rounded-xl text-lg font-bold hover:from-emerald-700 hover:via-teal-700 hover:to-cyan-700 shadow-2xl transform hover:scale-105 transition-all duration-300"
+            >
+              <MessageCircle className="h-5 w-5 mr-2" />
+              Join Chat Room
+            </Button>
+          </div>
         </div>
 
         {/* Categories */}
@@ -207,7 +216,7 @@ Your colorful digital library for organizing and accessing academic books, relax
                 key={file.id}
                 file={file}
                 onPreview={setPreviewFile}
-                onDelete={setDeleteTarget}
+                onDelete={() => setDeleteTarget(file)}
               />
             ))
           ) : (
@@ -229,7 +238,7 @@ Your colorful digital library for organizing and accessing academic books, relax
       <UploadModal
         isOpen={showUploadModal}
         onClose={() => setShowUploadModal(false)}
-        onUploadSuccess={loadFiles}
+        onSuccess={loadFiles}
       />
 
       <PasswordModal
