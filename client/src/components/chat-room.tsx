@@ -453,15 +453,18 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
             />
           </div>
           <div className="flex items-center justify-between mt-2">
-            <p className="text-xs opacity-75 flex-1 truncate">{attachment.originalName}</p>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-medium opacity-75 truncate">{attachment.originalName}</p>
+              <p className="text-xs text-blue-200 opacity-80">💾 Stored in Chat Store</p>
+            </div>
             <Button
               onClick={(e) => {
                 e.stopPropagation();
                 handleDeleteFile(attachment.id, attachment.originalName);
               }}
-              className="w-6 h-6 p-0 bg-red-500 hover:bg-red-600 text-white rounded-full shadow-lg ml-2"
+              className="w-7 h-7 p-0 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white rounded-full shadow-lg ml-2"
               size="sm"
-              title="Delete file permanently"
+              title="🗑️ Delete from Chat Store permanently (requires password)"
             >
               <Trash2 className="h-3 w-3" />
             </Button>
@@ -590,10 +593,12 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
                     variant="ghost"
                     size="sm"
                     onClick={() => setShowFileBrowser(!showFileBrowser)}
-                    className="p-2 text-white hover:bg-white hover:bg-opacity-20 rounded-full"
+                    className="p-2 text-white hover:bg-white hover:bg-opacity-20 rounded-full flex items-center gap-1"
                     data-testid="button-toggle-files"
+                    title="Open Chat Store"
                   >
                     <Folder className="h-5 w-5" />
+                    <span className="text-xs font-medium hidden sm:inline">Store</span>
                   </Button>
                   <Button
                     variant="ghost"
@@ -612,20 +617,28 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
         {/* Main Content Area */}
         <div className="flex flex-1 overflow-hidden">
           
-          {/* File Browser Sidebar - Telegram Style */}
+          {/* Chat Store Sidebar - Enhanced Design */}
           {showFileBrowser && isAuthenticated && (
-            <div className="w-80 bg-white border-r border-gray-200 flex flex-col flex-shrink-0">
-              <div className="p-4 border-b border-gray-200 bg-gray-50">
+            <div className="w-80 bg-gradient-to-b from-white to-blue-50 border-r border-blue-200 flex flex-col flex-shrink-0 shadow-lg">
+              <div className="p-4 border-b border-blue-200 bg-gradient-to-r from-blue-100 to-indigo-100">
                 <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-lg font-semibold text-gray-800">Files</h3>
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center">
+                      <Folder className="h-4 w-4 text-white" />
+                    </div>
+                    <h3 className="text-lg font-bold bg-gradient-to-r from-blue-700 to-indigo-700 bg-clip-text text-transparent">Chat Store 💾</h3>
+                  </div>
                   <Button
                     onClick={() => setShowFileBrowser(false)}
-                    className="w-8 h-8 p-0 bg-gray-200 hover:bg-gray-300 text-gray-600 rounded-full"
+                    className="w-8 h-8 p-0 bg-white bg-opacity-50 hover:bg-white hover:bg-opacity-70 text-blue-600 rounded-full shadow-md"
                     size="sm"
                   >
                     <X className="h-4 w-4" />
                   </Button>
                 </div>
+                <p className="text-sm text-blue-600 font-medium mb-3">
+                  All files shared in chat are stored here safely! 🔒
+                </p>
                 
                 <div className="relative mb-3">
                   <Search className="h-4 w-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
@@ -659,30 +672,35 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
                 </div>
               </div>
               
-              <div className="flex-1 overflow-y-auto p-4 space-y-2">
+              <div className="flex-1 overflow-y-auto p-4 space-y-3">
                 {filteredFiles.length === 0 ? (
-                  <div className="text-center text-gray-400 py-8">
-                    <Folder className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                    <p>No files found</p>
+                  <div className="text-center text-blue-400 py-8">
+                    <div className="w-16 h-16 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <Folder className="h-8 w-8 text-blue-500 opacity-60" />
+                    </div>
+                    <p className="text-blue-600 font-medium">No files in Chat Store yet!</p>
+                    <p className="text-sm text-blue-500 mt-1">Share files in chat to see them here 📁</p>
                   </div>
                 ) : (
                   filteredFiles.map((file) => (
                     <div
                       key={file.id}
-                      className="bg-gray-50 hover:bg-gray-100 rounded-lg p-3 cursor-pointer transition-colors group border border-gray-200"
+                      className="bg-gradient-to-r from-white to-blue-50 hover:from-blue-50 hover:to-indigo-50 rounded-xl p-4 cursor-pointer transition-all duration-200 group border-2 border-blue-200 hover:border-blue-300 shadow-sm hover:shadow-md"
                       data-testid={`file-item-${file.id}`}
                     >
-                      <div className="flex items-center gap-3 mb-2">
-                        {getFileIcon(file.mimeType)}
+                      <div className="flex items-center gap-3 mb-3">
+                        <div className="w-10 h-10 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-lg flex items-center justify-center">
+                          {getFileIcon(file.mimeType)}
+                        </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium truncate text-gray-800">{file.originalName}</p>
-                          <p className="text-xs text-gray-500">{(file.size / 1024 / 1024).toFixed(2)} MB • {file.category}</p>
+                          <p className="text-sm font-semibold truncate text-gray-800">{file.originalName}</p>
+                          <p className="text-xs text-blue-600 font-medium">💾 {(file.size / 1024 / 1024).toFixed(2)} MB • Chat Store</p>
                         </div>
                       </div>
                       <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                         <Button
                           onClick={() => setPreviewFile(file)}
-                          className="flex-1 bg-[#517da2] hover:bg-[#4a6d94] text-white text-xs py-1"
+                          className="flex-1 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white text-xs py-2 rounded-lg font-medium shadow-sm"
                           size="sm"
                           data-testid={`button-preview-${file.id}`}
                         >
@@ -698,7 +716,7 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
                             link.click();
                             document.body.removeChild(link);
                           }}
-                          className="flex-1 bg-green-600 hover:bg-green-700 text-white text-xs py-1"
+                          className="flex-1 bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white text-xs py-2 rounded-lg font-medium shadow-sm"
                           size="sm"
                           data-testid={`button-download-${file.id}`}
                         >
