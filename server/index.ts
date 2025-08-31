@@ -57,7 +57,7 @@ io.on('connection', (socket) => {
 
   socket.on('join-chat', (data) => {
     const { username, password } = data;
-    
+
     if (password !== 'Ak47') {
       socket.emit('auth-error', 'Invalid password');
       return;
@@ -72,16 +72,16 @@ io.on('connection', (socket) => {
 
     chatUsers.set(socket.id, { username, joinedAt: Date.now() });
     socket.join('main-chat');
-    
+
     // Send recent message history to new user
     socket.emit('message-history', messageHistory.slice(-100));
-    
+
     // Notify others about new user
     socket.to('main-chat').emit('user-joined', { username });
-    
+
     // Send current user count
     io.to('main-chat').emit('user-count', chatUsers.size);
-    
+
     log(`User ${username} joined chat`);
   });
 
@@ -119,7 +119,7 @@ io.on('connection', (socket) => {
     }
 
     messageHistory.push(message);
-    
+
     // Keep only recent messages
     if (messageHistory.length > MAX_MESSAGES) {
       messageHistory = messageHistory.slice(-MAX_MESSAGES);
@@ -137,7 +137,7 @@ io.on('connection', (socket) => {
     }
 
     const { messageId } = data;
-    
+
     // Find the message to check ownership
     const messageToDelete = messageHistory.find(msg => msg.id === messageId);
     if (!messageToDelete) {
@@ -150,13 +150,13 @@ io.on('connection', (socket) => {
       socket.emit('auth-error', 'You can only delete your own messages');
       return;
     }
-    
+
     // Remove message from history
     messageHistory = messageHistory.filter(msg => msg.id !== messageId);
-    
+
     // Broadcast deletion to all users
     io.to('main-chat').emit('message-deleted', messageId);
-    
+
     log(`Message ${messageId} deleted by ${user.username}`);
   });
 
@@ -169,10 +169,10 @@ io.on('connection', (socket) => {
 
     // Clear all messages
     messageHistory = [];
-    
+
     // Broadcast to all users that all messages were deleted
     io.to('main-chat').emit('all-messages-deleted');
-    
+
     log(`All messages deleted by ${user.username}`);
   });
 

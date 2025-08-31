@@ -207,13 +207,15 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
       });
 
       newSocket.on('file-deleted', (data) => {
-        // Reload files when any file is deleted
-        loadFiles();
-        toast({
-          title: "File Deleted",
-          description: `${data.filename} was permanently deleted`,
-          className: "bg-red-50 border-red-200",
-        });
+        // Only reload files if we're still authenticated and connected
+        if (isAuthenticated && newSocket.connected) {
+          loadFiles();
+          toast({
+            title: "File Deleted",
+            description: `${data.filename} was permanently deleted`,
+            className: "bg-red-50 border-red-200",
+          });
+        }
       });
 
       newSocket.on('disconnect', (reason) => {
@@ -420,7 +422,11 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
     
     try {
       const response = await fetch(`/api/files/${deletingFileId}`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        headers: {
+          'Authorization': deleteFilePassword,
+          'Content-Type': 'application/json'
+        }
       });
 
       if (response.ok) {
@@ -438,14 +444,15 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
           className: "bg-red-50 border-red-200",
         });
       } else {
-        const errorData = await response.json();
+        const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
         throw new Error(errorData.message || 'Failed to delete file');
       }
     } catch (error) {
       console.error('Delete file error:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to delete file. Please try again.';
       toast({
         title: "Delete Error",
-        description: "Failed to delete file. Please try again.",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
