@@ -25,11 +25,11 @@ const upload = multer({
       'application/vnd.ms-excel',
       'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
       'image/jpeg',
-      'image/jpg', 
+      'image/jpg',
       'image/png',
       'image/gif'
     ];
-    
+
     if (allowedMimeTypes.includes(file.mimetype)) {
       cb(null, true);
     } else {
@@ -39,7 +39,7 @@ const upload = multer({
 });
 
 export async function registerRoutes(app: Express, io?: SocketIOServer): Promise<void> {
-  
+
   // Get all files
   app.get("/api/files", async (req, res) => {
     try {
@@ -67,8 +67,8 @@ export async function registerRoutes(app: Express, io?: SocketIOServer): Promise
       const { q, category, type } = req.query;
       const query = q as string || "";
       const files = await storage.searchFiles(
-        query, 
-        category as string, 
+        query,
+        category as string,
         type as string
       );
       res.json(files);
@@ -82,7 +82,7 @@ export async function registerRoutes(app: Express, io?: SocketIOServer): Promise
     try {
       const { category } = req.body;
       const files = req.files as Express.Multer.File[];
-      
+
       if (!files || files.length === 0) {
         return res.status(400).json({ message: "No files uploaded" });
       }
@@ -98,7 +98,7 @@ export async function registerRoutes(app: Express, io?: SocketIOServer): Promise
         const fileExt = path.extname(file.originalname);
         const uniqueName = `${Date.now()}-${Math.random().toString(36).substring(7)}${fileExt}`;
         const permanentPath = path.join(uploadDir, uniqueName);
-        
+
         fs.renameSync(file.path, permanentPath);
 
         const fileData = {
@@ -111,7 +111,7 @@ export async function registerRoutes(app: Express, io?: SocketIOServer): Promise
 
         const savedFile = await storage.createFile(fileData);
         uploadedFiles.push(savedFile);
-        
+
         // Broadcast file upload to all chat users
         if (io) {
           io.to('main-chat').emit('file-uploaded', savedFile);
@@ -130,13 +130,13 @@ export async function registerRoutes(app: Express, io?: SocketIOServer): Promise
     try {
       const { id } = req.params;
       const file = await storage.getFile(id);
-      
+
       if (!file) {
         return res.status(404).json({ message: "File not found" });
       }
 
       const filePath = path.join(uploadDir, file.filename);
-      
+
       if (!fs.existsSync(filePath)) {
         return res.status(404).json({ message: "File not found on disk" });
       }
@@ -154,7 +154,7 @@ export async function registerRoutes(app: Express, io?: SocketIOServer): Promise
     try {
       const { id } = req.params;
       const file = await storage.getFile(id);
-      
+
       if (!file) {
         return res.status(404).json({ message: "File not found" });
       }
@@ -170,13 +170,13 @@ export async function registerRoutes(app: Express, io?: SocketIOServer): Promise
     try {
       const { id } = req.params;
       const file = await storage.getFile(id);
-      
+
       if (!file) {
         return res.status(404).json({ message: "File not found" });
       }
 
       const filePath = path.join(uploadDir, file.filename);
-      
+
       if (!fs.existsSync(filePath)) {
         return res.status(404).json({ message: "File not found on disk" });
       }
@@ -193,27 +193,30 @@ export async function registerRoutes(app: Express, io?: SocketIOServer): Promise
     try {
       const { id } = req.params;
       const { password } = req.body;
-      
+
+      console.log('File deletion request:', { id, hasPassword: !!password });
+
       // Verify password for deletion
-      if (password !== 'Ak47') {
-        return res.status(403).json({ message: "Incorrect password" });
+      if (!password || password !== 'Ak47') {
+        console.log('File deletion denied - invalid password');
+        return res.status(403).json({ message: "Access denied. Invalid credentials." });
       }
 
       const file = await storage.getFile(id);
-      
+
       if (!file) {
         return res.status(404).json({ message: "File not found" });
       }
 
       const filePath = path.join(uploadDir, file.filename);
-      
+
       // Delete file from database storage first
       const deletedFromStorage = await storage.deleteFile(id);
-      
+
       if (!deletedFromStorage) {
         return res.status(500).json({ message: "Failed to delete from storage" });
       }
-      
+
       // Delete physical file from disk
       if (fs.existsSync(filePath)) {
         try {
@@ -226,14 +229,14 @@ export async function registerRoutes(app: Express, io?: SocketIOServer): Promise
 
       // Broadcast file deletion to all connected clients (chat users and website users)
       if (io) {
-        io.emit('file-deleted', { 
-          fileId: id, 
-          filename: file.originalName 
+        io.emit('file-deleted', {
+          fileId: id,
+          filename: file.originalName
         });
         console.log(`File deletion broadcasted: ${file.originalName}`);
       }
 
-      res.json({ 
+      res.json({
         message: "File deleted successfully",
         fileId: id,
         filename: file.originalName
@@ -244,5 +247,5 @@ export async function registerRoutes(app: Express, io?: SocketIOServer): Promise
     }
   });
 
-  
+
 }

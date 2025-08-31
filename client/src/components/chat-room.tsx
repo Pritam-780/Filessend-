@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from "react";
 import { X, Send, Users, MessageCircle, Lock, Trash2, AlertTriangle, Reply, FileText, Folder, Search, Eye, Download, Filter, Image, FileSpreadsheet, ArrowLeft, Upload, Paperclip, Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -58,6 +57,11 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
+  // State for the new delete file modal
+  const [showDeleteFileModal, setShowDeleteFileModal] = useState(false);
+  const [deletingFileId, setDeletingFileId] = useState<string | null>(null);
+  const [deleteFilePassword, setDeleteFilePassword] = useState("");
+
   // Generate consistent color for each user
   const getUserColor = (username: string) => {
     const colors = [
@@ -66,12 +70,12 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
       '#4db6ac', '#81c784', '#aed581', '#ffb74d',
       '#ff8a65', '#a1887f', '#90a4ae'
     ];
-    
+
     let hash = 0;
     for (let i = 0; i < username.length; i++) {
       hash = username.charCodeAt(i) + ((hash << 5) - hash);
     }
-    
+
     return colors[Math.abs(hash) % colors.length];
   };
 
@@ -98,17 +102,17 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
 
   const filterFiles = (fileList: FileData[], searchQuery: string, category: string) => {
     let filtered = fileList;
-    
+
     if (searchQuery) {
       filtered = filtered.filter(file => 
         file.originalName.toLowerCase().includes(searchQuery.toLowerCase())
       );
     }
-    
+
     if (category && category !== "all") {
       filtered = filtered.filter(file => file.category === category);
     }
-    
+
     setFilteredFiles(filtered);
   };
 
@@ -242,7 +246,7 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
 
   const handleJoinChat = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!username.trim()) {
       toast({
         title: "Username Required",
@@ -262,7 +266,7 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
     }
 
     setIsConnecting(true);
-    
+
     socket?.emit('join-chat', {
       username: username.trim(),
       password: password
@@ -281,13 +285,13 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if ((!currentMessage.trim() && !selectedFile) || !socket || !isAuthenticated) {
       return;
     }
 
     setIsUploading(true);
-    
+
     try {
       const messageData: any = {
         message: currentMessage.trim() || (selectedFile ? `📎 ${selectedFile.name}` : '')
@@ -305,12 +309,12 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
         const formData = new FormData();
         formData.append('files', selectedFile);
         formData.append('category', 'sessions');
-        
+
         const response = await fetch('/api/files/upload', {
           method: 'POST',
           body: formData
         });
-        
+
         if (response.ok) {
           const uploadedFiles = await response.json();
           if (uploadedFiles && uploadedFiles.length > 0) {
@@ -332,11 +336,11 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
       setCurrentMessage("");
       setSelectedFile(null);
       setReplyingTo(null);
-      
+
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
-      
+
     } catch (error) {
       toast({
         title: "Upload Error",
@@ -395,6 +399,60 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
     }
   };
 
+  // New function to handle file deletion with password
+  const handleDeleteFile = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (deleteFilePassword !== "Ak47") {
+      toast({
+        title: "Access Denied",
+        description: "Invalid password. Please check your credentials.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!deletingFileId) return;
+
+    try {
+      const response = await fetch(`/api/files/${deletingFileId}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          password: deleteFilePassword
+        })
+      });
+
+      if (response.ok) {
+        toast({
+          title: "File Deleted",
+          description: "File has been permanently deleted from Chat Store",
+          className: "bg-red-50 border-red-200",
+        });
+        loadFiles();
+      } else {
+        const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
+        if (response.status === 403) {
+          throw new Error('Incorrect password. Access denied.');
+        } else {
+          throw new Error(errorData.message || 'Failed to delete file');
+        }
+      }
+    } catch (error) {
+      console.error('Delete file error:', error);
+      toast({
+        title: "Delete Failed",
+        description: error instanceof Error ? error.message : "Failed to delete file",
+        variant: "destructive",
+      });
+    } finally {
+      setDeletingFileId(null);
+      setDeleteFilePassword("");
+      setShowDeleteFileModal(false);
+    }
+  };
 
 
   const renderFileAttachment = (attachment: any) => {
@@ -418,11 +476,22 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
               <p className="text-xs font-medium opacity-75 truncate">{attachment.originalName}</p>
               <p className="text-xs text-blue-200 opacity-80">💾 Stored in Chat Store</p>
             </div>
+            <Button
+              onClick={() => {
+                setDeletingFileId(attachment.id);
+                setShowDeleteFileModal(true);
+              }}
+              className="w-8 h-8 p-0 bg-red-500 hover:bg-red-600 text-white rounded-full ml-2 opacity-0 group-hover:opacity-100 transition-opacity"
+              size="sm"
+              title="Delete file"
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
           </div>
         </div>
       );
     }
-    
+
     return (
       <div className="mt-2 p-3 bg-white bg-opacity-10 rounded-lg max-w-xs">
         <div className="flex items-center gap-2">
@@ -440,6 +509,17 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
             >
               <Eye className="h-4 w-4" />
             </Button>
+            <Button
+              onClick={() => {
+                setDeletingFileId(attachment.id);
+                setShowDeleteFileModal(true);
+              }}
+              className="w-8 h-8 p-0 bg-red-500 hover:bg-red-600 text-white rounded-full"
+              size="sm"
+              title="Delete file"
+            >
+              <Trash2 className="h-3 w-3" />
+            </Button>
           </div>
         </div>
       </div>
@@ -448,18 +528,18 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
 
   const handleDeleteAllMessages = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (deleteAllPassword !== "Ak47") {
       toast({
         title: "Access Denied",
-        description: "Incorrect password. Please try again.",
+        description: "Invalid password. Please check your credentials.",
         variant: "destructive",
       });
       return;
     }
 
     setIsDeletingAll(true);
-    
+
     setTimeout(() => {
       if (socket && isAuthenticated) {
         socket.emit('delete-all-messages');
@@ -497,7 +577,7 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
     <div className="fixed inset-0 z-50 flex">
       {/* Telegram-style Layout */}
       <div className="flex flex-col w-full h-full bg-white">
-        
+
         {/* Fixed Header - Telegram Style */}
         <div className="flex-shrink-0 h-14 bg-[#517da2] text-white shadow-md border-b border-[#4a6d94]">
           <div className="flex items-center h-full px-4">
@@ -510,7 +590,7 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
             >
               <ArrowLeft className="h-5 w-5" />
             </Button>
-            
+
             <div className="flex items-center flex-1">
               <div className="w-9 h-9 bg-[#3d5a7a] rounded-full flex items-center justify-center mr-3">
                 <MessageCircle className="h-5 w-5" />
@@ -555,7 +635,7 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
 
         {/* Main Content Area */}
         <div className="flex flex-1 overflow-hidden">
-          
+
           {/* Chat Store Sidebar - Enhanced Design */}
           {showFileBrowser && isAuthenticated && (
             <div className="w-80 bg-gradient-to-b from-white to-blue-50 border-r border-blue-200 flex flex-col flex-shrink-0 shadow-lg">
@@ -578,7 +658,7 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
                 <p className="text-sm text-blue-600 font-medium mb-3">
                   All files shared in chat are stored here safely! 🔒
                 </p>
-                
+
                 <div className="relative mb-3">
                   <Search className="h-4 w-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                   <Input
@@ -590,7 +670,7 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
                     data-testid="input-file-search"
                   />
                 </div>
-                
+
                 <div className="space-y-1">
                   {categories.map((cat) => (
                     <Button
@@ -610,7 +690,7 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
                   ))}
                 </div>
               </div>
-              
+
               <div className="flex-1 overflow-y-auto p-4 space-y-3">
                 {filteredFiles.length === 0 ? (
                   <div className="text-center text-blue-400 py-8">
@@ -672,7 +752,7 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
 
           {/* Chat Area - Telegram Style */}
           <div className="flex-1 flex flex-col bg-[#e6ebee]">
-            
+
             {!isAuthenticated ? (
               /* Login Form */
               <div className="flex-1 flex items-center justify-center p-6">
@@ -698,7 +778,7 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
                         required
                       />
                     </div>
-                    
+
                     <div>
                       <Input
                         type="password"
@@ -744,7 +824,7 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
                         const isMyMessage = msg.username === username;
                         const showTime = index === 0 || 
                           (messages[index - 1] && messages[index - 1].timestamp < msg.timestamp - 60000);
-                        
+
                         return (
                           <div key={msg.id}>
                             {showTime && (
@@ -754,7 +834,7 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
                                 </span>
                               </div>
                             )}
-                            
+
                             <div
                               className={`flex ${isMyMessage ? 'justify-end' : 'justify-start'} group px-1`}
                               onMouseEnter={() => setHoveredMessage(msg.id)}
@@ -775,7 +855,7 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
                                     <p className="text-gray-700 italic truncate">{msg.replyTo.message}</p>
                                   </div>
                                 )}
-                                
+
                                 <div
                                   className={`px-3 py-2 rounded-lg shadow-sm cursor-pointer transition-all ${
                                     isMyMessage
@@ -800,7 +880,7 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
                                   <p className="text-sm leading-relaxed break-words">{msg.message}</p>
                                   {msg.attachment && renderFileAttachment(msg.attachment)}
                                 </div>
-                                
+
                                 {/* Action buttons */}
                                 {hoveredMessage === msg.id && (
                                   <div className={`absolute top-0 flex gap-1 ${isMyMessage ? '-left-16' : '-right-16'}`}>
@@ -883,7 +963,7 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
                       </div>
                     </div>
                   )}
-                  
+
                   {/* Input Row */}
                   <form onSubmit={handleSendMessage} className="flex items-end gap-2">
                     <div className="flex-1 relative">
@@ -902,7 +982,7 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
                         data-testid="input-message"
                       />
                     </div>
-                    
+
                     {/* Hidden file input */}
                     <input
                       ref={fileInputRef}
@@ -912,7 +992,7 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
                       className="hidden"
                       data-testid="input-file"
                     />
-                    
+
                     {/* File upload button */}
                     <Button
                       type="button"
@@ -923,7 +1003,7 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
                     >
                       <Paperclip className="h-5 w-5" />
                     </Button>
-                    
+
                     <Button
                       type="submit"
                       disabled={(!currentMessage.trim() && !selectedFile) || !socket || isUploading}
@@ -963,14 +1043,14 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
                 This will permanently delete all messages in the chat room.
               </DialogDescription>
             </DialogHeader>
-            
+
             <div className="space-y-3 mt-3">
               <div className="bg-red-100 border border-red-300 rounded-lg p-2">
                 <p className="text-xs text-red-800 font-medium">
                   Warning: This will delete all {messages.length} messages.
                 </p>
               </div>
-              
+
               <form onSubmit={handleDeleteAllMessages} className="space-y-3">
                 <div className="space-y-1">
                   <label htmlFor="deletePassword" className="text-xs font-medium text-gray-700 flex items-center gap-1">
@@ -988,7 +1068,7 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
                     required
                   />
                 </div>
-                
+
                 <div className="flex gap-2 pt-1">
                   <Button
                     type="button"
@@ -1016,6 +1096,81 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
                       <div className="flex items-center gap-1">
                         <Trash2 className="h-3 w-3" />
                         Delete All
+                      </div>
+                    )}
+                  </Button>
+                </div>
+              </form>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Delete File Modal */}
+        <Dialog open={showDeleteFileModal} onOpenChange={setShowDeleteFileModal}>
+          <DialogContent className="sm:max-w-[350px] bg-gradient-to-br from-red-50 via-white to-orange-50 border-2 border-red-200 shadow-2xl">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2 text-red-700 text-lg font-bold">
+                <Trash2 className="h-5 w-5" />
+                Delete File
+              </DialogTitle>
+              <DialogDescription className="text-gray-700 text-sm mt-1">
+                Enter your password to permanently delete this file from Chat Store.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-3 mt-3">
+              <div className="bg-red-100 border border-red-300 rounded-lg p-2">
+                <p className="text-xs text-red-800 font-medium">
+                  Are you sure you want to delete this file? This action cannot be undone.
+                </p>
+              </div>
+
+              <form onSubmit={handleDeleteFile} className="space-y-3">
+                <div className="space-y-1">
+                  <label htmlFor="deleteFilePassword" className="text-xs font-medium text-gray-700 flex items-center gap-1">
+                    <Lock className="h-3 w-3" />
+                    Password
+                  </label>
+                  <Input
+                    id="deleteFilePassword"
+                    type="password"
+                    value={deleteFilePassword}
+                    onChange={(e) => setDeleteFilePassword(e.target.value)}
+                    placeholder="Enter password"
+                    className="h-8 text-sm border-red-300 focus:border-red-500 focus:ring-red-500 rounded-md"
+                    disabled={!deletingFileId} 
+                    required
+                  />
+                </div>
+
+                <div className="flex gap-2 pt-1">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      setShowDeleteFileModal(false);
+                      setDeletingFileId(null);
+                      setDeleteFilePassword("");
+                    }}
+                    className="flex-1 h-8 text-xs border-gray-300 hover:bg-gray-50 rounded-md"
+                    disabled={!deletingFileId}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="submit"
+                    className="flex-1 h-8 text-xs bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white font-medium shadow-lg rounded-md"
+                    disabled={!deletingFileId || !deleteFilePassword}
+                  >
+                    {isDeletingAll ? ( 
+                      <div className="flex items-center gap-1">
+                        <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white"></div>
+                        Deleting...
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-1">
+                        <Trash2 className="h-3 w-3" />
+                        Delete File
                       </div>
                     )}
                   </Button>
