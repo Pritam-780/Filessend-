@@ -754,6 +754,18 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
                           <Download className="h-3 w-3 mr-1" />
                           Download
                         </Button>
+                        <Button
+                          onClick={() => {
+                            setDeletingFileId(file.id);
+                            setShowDeleteFileModal(true);
+                          }}
+                          className="flex-1 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white text-xs py-2 rounded-lg font-medium shadow-sm"
+                          size="sm"
+                          data-testid={`button-delete-store-${file.id}`}
+                        >
+                          <Trash2 className="h-3 w-3 mr-1" />
+                          Delete
+                        </Button>
                       </div>
                     </div>
                   ))
