@@ -59,65 +59,65 @@ export default function DeleteConfirmationModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[400px] bg-gradient-to-br from-red-50 via-white to-orange-50 border-2 border-red-200 shadow-2xl">
+      <DialogContent className="sm:max-w-[350px] bg-gradient-to-br from-red-50 via-white to-orange-50 border-2 border-red-200 shadow-2xl">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-red-700 text-xl font-bold">
-            <AlertTriangle className="h-6 w-6" />
+          <DialogTitle className="flex items-center gap-2 text-red-700 text-lg font-bold">
+            <AlertTriangle className="h-5 w-5" />
             Confirm Deletion
           </DialogTitle>
-          <DialogDescription className="text-gray-700 mt-2">
+          <DialogDescription className="text-gray-700 text-sm mt-1">
             This action cannot be undone. Please enter the password to confirm deletion.
           </DialogDescription>
         </DialogHeader>
         
-        <div className="space-y-4 mt-4">
-          <div className="bg-red-100 border border-red-300 rounded-lg p-3">
-            <p className="text-sm text-red-800 font-medium">
+        <div className="space-y-3 mt-3">
+          <div className="bg-red-100 border border-red-300 rounded-lg p-2">
+            <p className="text-xs text-red-800 font-medium">
               You are about to delete: <span className="font-bold">"{fileName}"</span>
             </p>
           </div>
           
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <label htmlFor="password" className="text-sm font-medium text-gray-700 flex items-center gap-2">
-                <Lock className="h-4 w-4" />
-                Enter Password
+          <form onSubmit={handleSubmit} className="space-y-3">
+            <div className="space-y-1">
+              <label htmlFor="password" className="text-xs font-medium text-gray-700 flex items-center gap-1">
+                <Lock className="h-3 w-3" />
+                Password
               </label>
               <Input
                 id="password"
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Enter password to confirm"
-                className="border-red-300 focus:border-red-500 focus:ring-red-500"
+                placeholder="Enter password"
+                className="h-8 text-sm border-red-300 focus:border-red-500 focus:ring-red-500"
                 disabled={isDeleting}
                 required
               />
             </div>
             
-            <div className="flex gap-3 pt-2">
+            <div className="flex gap-2 pt-1">
               <Button
                 type="button"
                 variant="outline"
                 onClick={handleClose}
-                className="flex-1 border-gray-300 hover:bg-gray-50"
+                className="flex-1 h-8 text-xs border-gray-300 hover:bg-gray-50"
                 disabled={isDeleting}
               >
                 Cancel
               </Button>
               <Button
                 type="submit"
-                className="flex-1 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white font-medium shadow-lg"
+                className="flex-1 h-8 text-xs bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white font-medium shadow-lg"
                 disabled={isDeleting || !password}
               >
                 {isDeleting ? (
-                  <div className="flex items-center gap-2">
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  <div className="flex items-center gap-1">
+                    <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white"></div>
                     Deleting...
                   </div>
                 ) : (
-                  <div className="flex items-center gap-2">
-                    <Trash2 className="h-4 w-4" />
+                  <div className="flex items-center gap-1">
+                    <Trash2 className="h-3 w-3" />
                     Delete File
                   </div>
                 )}
