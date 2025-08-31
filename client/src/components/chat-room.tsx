@@ -54,10 +54,6 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
   const [previewFile, setPreviewFile] = useState<FileData | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
-  const [deletingFileId, setDeletingFileId] = useState<string | null>(null);
-  const [showDeleteFileModal, setShowDeleteFileModal] = useState(false);
-  const [deleteFilePassword, setDeleteFilePassword] = useState("");
-  const [isDeletingFile, setIsDeletingFile] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
@@ -399,69 +395,6 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
     }
   };
 
-  const handleDeleteFileFromStore = async (fileId: string) => {
-    setDeletingFileId(fileId);
-    setShowDeleteFileModal(true);
-  };
-
-  const confirmDeleteFile = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (deleteFilePassword !== "Ak47") {
-      toast({
-        title: "Access Denied",
-        description: "Incorrect password. Please try again.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (!deletingFileId) return;
-
-    setIsDeletingFile(true);
-    
-    try {
-      const response = await fetch(`/api/files/${deletingFileId}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': deleteFilePassword,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (response.ok) {
-        // Reload files in chat room only if still authenticated
-        if (isAuthenticated && socket?.connected) {
-          loadFiles();
-        }
-        
-        // Trigger storage event to refresh file lists across all components
-        window.dispatchEvent(new Event('storage'));
-        
-        toast({
-          title: "File Deleted",
-          description: "File has been permanently deleted from Chat Store",
-          className: "bg-red-50 border-red-200",
-        });
-      } else {
-        const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
-        throw new Error(errorData.message || 'Failed to delete file');
-      }
-    } catch (error) {
-      console.error('Delete file error:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Failed to delete file. Please try again.';
-      toast({
-        title: "Delete Error",
-        description: errorMessage,
-        variant: "destructive",
-      });
-    } finally {
-      setIsDeletingFile(false);
-      setDeleteFilePassword("");
-      setDeletingFileId(null);
-      setShowDeleteFileModal(false);
-    }
-  };
 
 
   const renderFileAttachment = (attachment: any) => {
@@ -728,15 +661,6 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
                         >
                           <Download className="h-3 w-3 mr-1" />
                           Download
-                        </Button>
-                        <Button
-                          onClick={() => handleDeleteFileFromStore(file.id)}
-                          className="flex-1 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white text-xs py-2 rounded-lg font-medium shadow-sm"
-                          size="sm"
-                          data-testid={`button-delete-store-${file.id}`}
-                        >
-                          <Trash2 className="h-3 w-3 mr-1" />
-                          Delete
                         </Button>
                       </div>
                     </div>
@@ -1026,80 +950,6 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
           file={previewFile}
         />
 
-        {/* Delete File from Store Modal */}
-        <Dialog open={showDeleteFileModal} onOpenChange={setShowDeleteFileModal}>
-          <DialogContent className="sm:max-w-[350px] bg-gradient-to-br from-red-50 via-white to-orange-50 border-2 border-red-200 shadow-2xl">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2 text-red-700 text-lg font-bold">
-                <AlertTriangle className="h-5 w-5" />
-                Delete File from Store
-              </DialogTitle>
-              <DialogDescription className="text-gray-700 text-sm mt-1">
-                This will permanently remove the file from Chat Store.
-              </DialogDescription>
-            </DialogHeader>
-            
-            <div className="space-y-3 mt-3">
-              <div className="bg-red-100 border border-red-300 rounded-lg p-2">
-                <p className="text-xs text-red-800 font-medium">
-                  Warning: This action cannot be undone.
-                </p>
-              </div>
-              
-              <form onSubmit={confirmDeleteFile} className="space-y-3">
-                <div className="space-y-1">
-                  <label htmlFor="deleteFilePassword" className="text-xs font-medium text-gray-700 flex items-center gap-1">
-                    <Lock className="h-3 w-3" />
-                    Password
-                  </label>
-                  <Input
-                    id="deleteFilePassword"
-                    type="password"
-                    value={deleteFilePassword}
-                    onChange={(e) => setDeleteFilePassword(e.target.value)}
-                    placeholder="Enter password"
-                    className="h-8 text-sm border-red-300 focus:border-red-500 focus:ring-red-500 rounded-md"
-                    disabled={isDeletingFile}
-                    required
-                  />
-                </div>
-                
-                <div className="flex gap-2 pt-1">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => {
-                      setShowDeleteFileModal(false);
-                      setDeleteFilePassword("");
-                      setDeletingFileId(null);
-                    }}
-                    className="flex-1 h-8 text-xs border-gray-300 hover:bg-gray-50 rounded-md"
-                    disabled={isDeletingFile}
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    type="submit"
-                    className="flex-1 h-8 text-xs bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white font-medium shadow-lg rounded-md"
-                    disabled={isDeletingFile || !deleteFilePassword}
-                  >
-                    {isDeletingFile ? (
-                      <div className="flex items-center gap-1">
-                        <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white"></div>
-                        Deleting...
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-1">
-                        <Trash2 className="h-3 w-3" />
-                        Delete
-                      </div>
-                    )}
-                  </Button>
-                </div>
-              </form>
-            </div>
-          </DialogContent>
-        </Dialog>
 
         {/* Delete All Messages Modal */}
         <Dialog open={showDeleteAllModal} onOpenChange={setShowDeleteAllModal}>

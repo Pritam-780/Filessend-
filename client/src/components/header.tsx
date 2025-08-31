@@ -57,23 +57,47 @@ export default function Header({ onSearchChange, onChatOpen }: HeaderProps) {
                   </span>
                 </Link>
               ))}
-              <Button 
-                onClick={() => setIsUploadModalOpen(true)}
-                className="bg-primary text-white hover:bg-blue-800 font-medium"
-              >
-                <Upload className="h-4 w-4 mr-2" />
-                Upload
-              </Button>
+              <div className="flex gap-3">
+                <Button 
+                  onClick={() => setIsUploadModalOpen(true)}
+                  className="bg-primary text-white hover:bg-blue-800 font-medium"
+                >
+                  <Upload className="h-4 w-4 mr-2" />
+                  Upload
+                </Button>
+                {onChatOpen && (
+                  <Button 
+                    onClick={onChatOpen}
+                    variant="outline"
+                    className="border-primary text-primary hover:bg-primary hover:text-white font-medium"
+                  >
+                    <MessageCircle className="h-4 w-4 mr-2" />
+                    Chat
+                  </Button>
+                )}
+              </div>
             </nav>
 
-            {/* Mobile Upload Button */}
-            <Button
-              onClick={() => setIsUploadModalOpen(true)}
-              className="md:hidden bg-primary text-white p-2 hover:bg-blue-800"
-              size="sm"
-            >
-              <Upload className="h-4 w-4" />
-            </Button>
+            {/* Mobile Action Buttons */}
+            <div className="md:hidden flex gap-2">
+              <Button
+                onClick={() => setIsUploadModalOpen(true)}
+                className="bg-primary text-white p-2 hover:bg-blue-800"
+                size="sm"
+              >
+                <Upload className="h-4 w-4" />
+              </Button>
+              {onChatOpen && (
+                <Button
+                  onClick={onChatOpen}
+                  variant="outline"
+                  className="border-primary text-primary hover:bg-primary hover:text-white p-2"
+                  size="sm"
+                >
+                  <MessageCircle className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
           </div>
         </div>
       </header>

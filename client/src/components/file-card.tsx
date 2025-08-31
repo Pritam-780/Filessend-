@@ -73,17 +73,18 @@ export default function FileCard({ file, onPreview, onDelete }: FileCardProps) {
         <div className="flex gap-2">
           <Button 
             onClick={() => onPreview(file)}
-            className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-2 px-3 rounded-lg text-sm hover:from-blue-700 hover:to-indigo-700 shadow-lg font-medium"
+            className="flex-1 bg-primary text-white hover:bg-primary/90 text-sm font-medium"
             size="sm"
           >
             <Eye className="h-3 w-3 mr-1" />
-            Preview
+            <span className="hidden sm:inline">Preview</span>
           </Button>
           <Button 
             onClick={handleDownload}
             variant="outline"
             size="sm"
-            className="bg-gradient-to-r from-green-50 to-emerald-50 border-green-300 text-green-700 py-2 px-3 rounded-lg text-sm hover:from-green-100 hover:to-emerald-100 shadow-md"
+            className="border-green-300 text-green-700 hover:bg-green-50"
+            title="Download file"
           >
             <Download className="h-3 w-3" />
           </Button>
@@ -91,7 +92,8 @@ export default function FileCard({ file, onPreview, onDelete }: FileCardProps) {
             onClick={() => setShowDeleteModal(true)}
             variant="outline"
             size="sm"
-            className="bg-gradient-to-r from-red-50 to-pink-50 border-red-300 text-red-700 py-2 px-3 rounded-lg text-sm hover:from-red-100 hover:to-pink-100 shadow-md"
+            className="border-red-300 text-red-700 hover:bg-red-50"
+            title="Delete file"
           >
             <Trash2 className="h-3 w-3" />
           </Button>
