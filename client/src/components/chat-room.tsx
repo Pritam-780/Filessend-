@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef } from "react";
 import { X, Send, Users, MessageCircle, Lock, Trash2, AlertTriangle, Reply, FileText, Folder, Search, Eye, Download, Filter, Image, FileSpreadsheet, ArrowLeft, Upload, Paperclip, Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -65,12 +66,12 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
       '#4db6ac', '#81c784', '#aed581', '#ffb74d',
       '#ff8a65', '#a1887f', '#90a4ae'
     ];
-
+    
     let hash = 0;
     for (let i = 0; i < username.length; i++) {
       hash = username.charCodeAt(i) + ((hash << 5) - hash);
     }
-
+    
     return colors[Math.abs(hash) % colors.length];
   };
 
@@ -97,17 +98,17 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
 
   const filterFiles = (fileList: FileData[], searchQuery: string, category: string) => {
     let filtered = fileList;
-
+    
     if (searchQuery) {
       filtered = filtered.filter(file => 
         file.originalName.toLowerCase().includes(searchQuery.toLowerCase())
       );
     }
-
+    
     if (category && category !== "all") {
       filtered = filtered.filter(file => file.category === category);
     }
-
+    
     setFilteredFiles(filtered);
   };
 
@@ -202,7 +203,7 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
       });
 
       newSocket.on('file-deleted', (data) => {
-        // Reload files without any authentication checks
+        // Reload files when any file is deleted
         loadFiles();
         toast({
           title: "File Deleted",
@@ -211,11 +212,9 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
         });
       });
 
-      // Remove automatic logout on disconnect to prevent file deletion logout issues
       newSocket.on('disconnect', (reason) => {
-        console.log('Socket disconnected:', reason);
-        // Only logout on specific server-side disconnections, not client-side operations
-        if (reason === 'io server disconnect' || reason === 'ping timeout') {
+        // Only show logout for transport errors or server disconnects
+        if (reason === 'transport error' || reason === 'server namespace disconnect') {
           setIsAuthenticated(false);
           toast({
             title: "Disconnected",
@@ -241,7 +240,7 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
 
   const handleJoinChat = (e: React.FormEvent) => {
     e.preventDefault();
-
+    
     if (!username.trim()) {
       toast({
         title: "Username Required",
@@ -261,7 +260,7 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
     }
 
     setIsConnecting(true);
-
+    
     socket?.emit('join-chat', {
       username: username.trim(),
       password: password
@@ -280,13 +279,13 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-
+    
     if ((!currentMessage.trim() && !selectedFile) || !socket || !isAuthenticated) {
       return;
     }
 
     setIsUploading(true);
-
+    
     try {
       const messageData: any = {
         message: currentMessage.trim() || (selectedFile ? `📎 ${selectedFile.name}` : '')
@@ -304,12 +303,12 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
         const formData = new FormData();
         formData.append('files', selectedFile);
         formData.append('category', 'sessions');
-
+        
         const response = await fetch('/api/files/upload', {
           method: 'POST',
           body: formData
         });
-
+        
         if (response.ok) {
           const uploadedFiles = await response.json();
           if (uploadedFiles && uploadedFiles.length > 0) {
@@ -331,11 +330,11 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
       setCurrentMessage("");
       setSelectedFile(null);
       setReplyingTo(null);
-
+      
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
-
+      
     } catch (error) {
       toast({
         title: "Upload Error",
@@ -394,7 +393,7 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
     }
   };
 
-
+  
 
   const handleDeleteFile = async (fileId: string, fileName: string) => {
     try {
@@ -407,17 +406,17 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
       });
 
       if (response.ok) {
-        // Always reload files in chat room after deletion
+        // Reload files in chat room without checking authentication to prevent logout
         loadFiles();
-
+        
         // Trigger storage event to refresh file lists across all components
         window.dispatchEvent(new Event('storage'));
-
+        
         // Also trigger a custom event for file deletion
         window.dispatchEvent(new CustomEvent('file-deleted', { 
           detail: { fileId, fileName } 
         }));
-
+        
         toast({
           title: "File Completely Deleted",
           description: `"${fileName}" has been permanently removed from everywhere.`,
@@ -470,7 +469,7 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
         </div>
       );
     }
-
+    
     return (
       <div className="mt-2 p-3 bg-white bg-opacity-10 rounded-lg max-w-xs">
         <div className="flex items-center gap-2">
@@ -507,7 +506,7 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
 
   const handleDeleteAllMessages = (e: React.FormEvent) => {
     e.preventDefault();
-
+    
     if (deleteAllPassword !== "Ak47") {
       toast({
         title: "Access Denied",
@@ -518,7 +517,7 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
     }
 
     setIsDeletingAll(true);
-
+    
     setTimeout(() => {
       if (socket && isAuthenticated) {
         socket.emit('delete-all-messages');
@@ -556,7 +555,7 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
     <div className="fixed inset-0 z-50 flex">
       {/* Telegram-style Layout */}
       <div className="flex flex-col w-full h-full bg-white">
-
+        
         {/* Fixed Header - Telegram Style */}
         <div className="flex-shrink-0 h-14 bg-[#517da2] text-white shadow-md border-b border-[#4a6d94]">
           <div className="flex items-center h-full px-4">
@@ -569,7 +568,7 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
             >
               <ArrowLeft className="h-5 w-5" />
             </Button>
-
+            
             <div className="flex items-center flex-1">
               <div className="w-9 h-9 bg-[#3d5a7a] rounded-full flex items-center justify-center mr-3">
                 <MessageCircle className="h-5 w-5" />
@@ -612,7 +611,7 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
 
         {/* Main Content Area */}
         <div className="flex flex-1 overflow-hidden">
-
+          
           {/* File Browser Sidebar - Telegram Style */}
           {showFileBrowser && isAuthenticated && (
             <div className="w-80 bg-white border-r border-gray-200 flex flex-col flex-shrink-0">
@@ -627,7 +626,7 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
                     <X className="h-4 w-4" />
                   </Button>
                 </div>
-
+                
                 <div className="relative mb-3">
                   <Search className="h-4 w-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                   <Input
@@ -639,7 +638,7 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
                     data-testid="input-file-search"
                   />
                 </div>
-
+                
                 <div className="space-y-1">
                   {categories.map((cat) => (
                     <Button
@@ -659,7 +658,7 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
                   ))}
                 </div>
               </div>
-
+              
               <div className="flex-1 overflow-y-auto p-4 space-y-2">
                 {filteredFiles.length === 0 ? (
                   <div className="text-center text-gray-400 py-8">
@@ -716,7 +715,7 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
 
           {/* Chat Area - Telegram Style */}
           <div className="flex-1 flex flex-col bg-[#e6ebee]">
-
+            
             {!isAuthenticated ? (
               /* Login Form */
               <div className="flex-1 flex items-center justify-center p-6">
@@ -742,7 +741,7 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
                         required
                       />
                     </div>
-
+                    
                     <div>
                       <Input
                         type="password"
@@ -788,7 +787,7 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
                         const isMyMessage = msg.username === username;
                         const showTime = index === 0 || 
                           (messages[index - 1] && messages[index - 1].timestamp < msg.timestamp - 60000);
-
+                        
                         return (
                           <div key={msg.id}>
                             {showTime && (
@@ -798,7 +797,7 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
                                 </span>
                               </div>
                             )}
-
+                            
                             <div
                               className={`flex ${isMyMessage ? 'justify-end' : 'justify-start'} group px-1`}
                               onMouseEnter={() => setHoveredMessage(msg.id)}
@@ -819,7 +818,7 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
                                     <p className="text-gray-700 italic truncate">{msg.replyTo.message}</p>
                                   </div>
                                 )}
-
+                                
                                 <div
                                   className={`px-3 py-2 rounded-lg shadow-sm cursor-pointer transition-all ${
                                     isMyMessage
@@ -844,7 +843,7 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
                                   <p className="text-sm leading-relaxed break-words">{msg.message}</p>
                                   {msg.attachment && renderFileAttachment(msg.attachment)}
                                 </div>
-
+                                
                                 {/* Action buttons */}
                                 {hoveredMessage === msg.id && (
                                   <div className={`absolute top-0 flex gap-1 ${isMyMessage ? '-left-16' : '-right-16'}`}>
@@ -927,7 +926,7 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
                       </div>
                     </div>
                   )}
-
+                  
                   {/* Input Row */}
                   <form onSubmit={handleSendMessage} className="flex items-end gap-2">
                     <div className="flex-1 relative">
@@ -946,7 +945,7 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
                         data-testid="input-message"
                       />
                     </div>
-
+                    
                     {/* Hidden file input */}
                     <input
                       ref={fileInputRef}
@@ -956,7 +955,7 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
                       className="hidden"
                       data-testid="input-file"
                     />
-
+                    
                     {/* File upload button */}
                     <Button
                       type="button"
@@ -967,7 +966,7 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
                     >
                       <Paperclip className="h-5 w-5" />
                     </Button>
-
+                    
                     <Button
                       type="submit"
                       disabled={(!currentMessage.trim() && !selectedFile) || !socket || isUploading}
@@ -1006,14 +1005,14 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
                 This action will permanently delete all messages in the chat room.
               </DialogDescription>
             </DialogHeader>
-
+            
             <div className="space-y-4 mt-4">
               <div className="bg-red-50 border border-red-200 rounded-lg p-3">
                 <p className="text-sm text-red-700 font-medium">
                   Warning: This will delete all {messages.length} messages in the chat room.
                 </p>
               </div>
-
+              
               <form onSubmit={handleDeleteAllMessages} className="space-y-4">
                 <div className="space-y-2">
                   <label htmlFor="deletePassword" className="text-sm font-medium text-gray-700 flex items-center gap-2">
@@ -1031,7 +1030,7 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
                     required
                   />
                 </div>
-
+                
                 <div className="flex gap-3 pt-2">
                   <Button
                     type="button"
