@@ -47,7 +47,23 @@ export default function UploadModal({ isOpen, onClose, onSuccess }: UploadModalP
       }, 200);
 
       try {
-        const result = await fileStorage.uploadFiles(selectedFiles, category);
+        // Use backend API instead of localStorage
+        const formData = new FormData();
+        selectedFiles.forEach(file => {
+          formData.append('files', file);
+        });
+        formData.append('category', category);
+
+        const response = await fetch('/api/files/upload', {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (!response.ok) {
+          throw new Error(`Upload failed: ${response.statusText}`);
+        }
+
+        const result = await response.json();
         clearInterval(progressInterval);
         setUploadProgress(100);
         return result;
@@ -62,6 +78,8 @@ export default function UploadModal({ isOpen, onClose, onSuccess }: UploadModalP
         description: "Files uploaded successfully!",
         className: "bg-gradient-to-r from-green-50 to-emerald-50 border-green-200",
       });
+      // Invalidate queries to refresh file lists across the app
+      queryClient.invalidateQueries({ queryKey: ['files'] });
       handleClose();
       if (onSuccess) {
         onSuccess();

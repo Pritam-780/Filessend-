@@ -1,4 +1,5 @@
-// Frontend-only file storage using localStorage and FileReader API
+
+// Frontend file storage with both localStorage and backend API support
 export interface FileData {
   id: string;
   name: string;
@@ -9,7 +10,7 @@ export interface FileData {
   size: number;
   category: string;
   uploadedAt: Date;
-  data: string; // base64 encoded file data
+  data?: string; // base64 encoded file data (for localStorage only)
 }
 
 const STORAGE_KEY = 'aailar_files';
@@ -39,6 +40,88 @@ export class LocalFileStorage {
     }
   }
 
+  // Backend API methods
+  async getAllFilesFromAPI(): Promise<FileData[]> {
+    try {
+      const response = await fetch('/api/files');
+      if (!response.ok) throw new Error('Failed to fetch files');
+      const files = await response.json();
+      return files.map((file: any) => ({
+        ...file,
+        uploadedAt: new Date(file.uploadedAt)
+      }));
+    } catch (error) {
+      console.error('Failed to fetch files from API:', error);
+      return [];
+    }
+  }
+
+  async getFilesByCategoryFromAPI(category: string): Promise<FileData[]> {
+    try {
+      const response = await fetch(`/api/files/category/${category}`);
+      if (!response.ok) throw new Error('Failed to fetch files');
+      const files = await response.json();
+      return files.map((file: any) => ({
+        ...file,
+        uploadedAt: new Date(file.uploadedAt)
+      }));
+    } catch (error) {
+      console.error('Failed to fetch files from API:', error);
+      return [];
+    }
+  }
+
+  async searchFilesFromAPI(query: string, category?: string, mimeType?: string): Promise<FileData[]> {
+    try {
+      const params = new URLSearchParams();
+      if (query) params.append('q', query);
+      if (category && category !== 'all') params.append('category', category);
+      if (mimeType && mimeType !== 'all') params.append('type', mimeType);
+
+      const response = await fetch(`/api/files/search?${params.toString()}`);
+      if (!response.ok) throw new Error('Failed to search files');
+      const files = await response.json();
+      return files.map((file: any) => ({
+        ...file,
+        uploadedAt: new Date(file.uploadedAt)
+      }));
+    } catch (error) {
+      console.error('Failed to search files from API:', error);
+      return [];
+    }
+  }
+
+  async deleteFileFromAPI(id: string, password: string): Promise<boolean> {
+    try {
+      const response = await fetch(`/api/files/${id}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ password }),
+      });
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to delete file');
+      }
+      
+      return true;
+    } catch (error) {
+      console.error('Failed to delete file from API:', error);
+      throw error;
+    }
+  }
+
+  getFileDownloadUrl(id: string): string {
+    return `/api/files/${id}/download`;
+  }
+
+  getFilePreviewUrl(id: string): string {
+    return `/api/files/${id}/preview`;
+  }
+
+  // Legacy localStorage methods (keeping for backward compatibility)
   async uploadFiles(files: File[], category: string): Promise<FileData[]> {
     const allowedTypes = [
       'application/pdf',
@@ -128,6 +211,9 @@ export class LocalFileStorage {
   }
 
   getFileBlob(file: FileData): Blob {
+    if (!file.data) {
+      throw new Error('File data not available for blob conversion');
+    }
     // Convert base64 back to blob for download/preview
     const byteCharacters = atob(file.data);
     const byteNumbers = new Array(byteCharacters.length);
@@ -139,8 +225,14 @@ export class LocalFileStorage {
   }
 
   getFileUrl(file: FileData): string {
-    const blob = this.getFileBlob(file);
-    return URL.createObjectURL(blob);
+    if (file.data) {
+      // LocalStorage file
+      const blob = this.getFileBlob(file);
+      return URL.createObjectURL(blob);
+    } else {
+      // Backend file
+      return this.getFilePreviewUrl(file.id);
+    }
   }
 
   private async fileToBase64(file: File): Promise<string> {

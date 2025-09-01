@@ -12,53 +12,61 @@ import PasswordModal from "@/components/password-modal";
 import UploadModal from "@/components/upload-modal";
 import { useToast } from "@/hooks/use-toast";
 import ChatRoom from "@/components/chat-room"; // Assuming ChatRoom component is created
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { io, Socket } from "socket.io-client";
 
 export default function Home() {
   const { toast } = useToast();
   const [previewFile, setPreviewFile] = useState<FileData | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
-  const [fileTypeFilter, setFileTypeFilter] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
+  const [fileTypeFilter, setFileTypeFilter] = useState("");
   const [files, setFiles] = useState<FileData[]>([]);
   const [filteredFiles, setFilteredFiles] = useState<FileData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<FileData | null>(null);
   const [showChatRoom, setShowChatRoom] = useState(false); // State to control chat room visibility
+  const queryClient = useQueryClient();
+
+  const { data: fetchedFiles = [], isLoading: isFetching, refetch } = useQuery({
+    queryKey: ['files'],
+    queryFn: () => fileStorage.getAllFilesFromAPI(),
+  });
 
   useEffect(() => {
-    loadFiles();
+    setFiles(fetchedFiles);
+    setFilteredFiles(fetchedFiles);
+    setIsLoading(false);
+  }, [fetchedFiles]);
 
-    const handleStorageChange = () => {
-      loadFiles();
-    };
 
-    const handleFileDeleted = (event: CustomEvent) => {
-      console.log('File deleted event received:', event.detail);
-      loadFiles(); // Refresh the file list immediately
-    };
+  // Set up real-time socket connection
+  useEffect(() => {
+    const socket: Socket = io();
 
-    window.addEventListener('storage', handleStorageChange);
-    window.addEventListener('file-deleted', handleFileDeleted as EventListener);
+    socket.on('file-uploaded', (newFile) => {
+      // Add new file to cache
+      queryClient.setQueryData(['files'], (oldFiles: any[] = []) => {
+        return [{ ...newFile, uploadedAt: new Date(newFile.uploadedAt) }, ...oldFiles];
+      });
+    });
+
+    socket.on('file-deleted', (data) => {
+      // Remove deleted file from cache
+      queryClient.setQueryData(['files'], (oldFiles: any[] = []) => {
+        return oldFiles.filter(file => file.id !== data.fileId);
+      });
+    });
 
     return () => {
-      window.removeEventListener('storage', handleStorageChange);
-      window.removeEventListener('file-deleted', handleFileDeleted as EventListener);
+      socket.disconnect();
     };
-  }, []);
+  }, [queryClient]);
 
-  const loadFiles = () => {
-    setIsLoading(true);
-    setTimeout(() => {
-      const allFiles = fileStorage.getAllFiles();
-      setFiles(allFiles);
-      setFilteredFiles(allFiles);
-      setIsLoading(false);
-    }, 500);
-  };
 
   const handleFileDelete = () => {
-    loadFiles();
+    refetch(); // Refetch files after a delete operation
   };
 
   const getFilteredFiles = () => {
@@ -238,7 +246,7 @@ Your colorful digital library for organizing and accessing academic books, relax
       <UploadModal
         isOpen={showUploadModal}
         onClose={() => setShowUploadModal(false)}
-        onSuccess={loadFiles}
+        onSuccess={refetch} // Use refetch to get the latest data from the API
       />
 
       <PasswordModal
@@ -246,10 +254,7 @@ Your colorful digital library for organizing and accessing academic books, relax
         onClose={() => setDeleteTarget(null)}
         onPasswordSubmit={(password) => {
           if (deleteTarget && password === "Ak47") {
-            fileStorage.deleteFile(deleteTarget.id);
-            // Dispatch a custom event to notify other parts of the app about the deletion
-            window.dispatchEvent(new CustomEvent('file-deleted', { detail: { fileId: deleteTarget.id } }));
-            handleFileDelete();
+            fileStorage.deleteFileFromAPI(deleteTarget.id); // Call API to delete file
             setDeleteTarget(null);
             toast({
               title: "File Deleted",

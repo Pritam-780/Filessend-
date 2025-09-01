@@ -12,6 +12,8 @@ import { FileData, fileStorage } from "@/lib/fileStorage";
 import PasswordModal from "@/components/password-modal";
 import UploadModal from "@/components/upload-modal";
 import { useToast } from "@/hooks/use-toast";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { io, Socket } from "socket.io-client";
 
 const categoryNames = {
   academic: "Academic Books",
@@ -35,6 +37,7 @@ export default function Category() {
   const [deleteTarget, setDeleteTarget] = useState<FileData | null>(null);
   const [showChatRoom, setShowChatRoom] = useState(false);
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const handleFileDelete = () => {
     if (deleteTarget) {
@@ -45,12 +48,18 @@ export default function Category() {
   useEffect(() => {
     if (!category) return;
 
-    const loadFiles = () => {
+    const loadFiles = async () => {
+      setIsLoading(true);
       try {
-        const categoryFiles = fileStorage.getFilesByCategory(category);
+        const categoryFiles = await fileStorage.getFilesByCategoryFromAPI(category);
         setFiles(categoryFiles);
       } catch (error) {
         console.error('Error loading files:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load files. Please try again.",
+          variant: "destructive",
+        });
       } finally {
         setIsLoading(false);
       }
@@ -58,28 +67,50 @@ export default function Category() {
 
     loadFiles();
 
-    // Listen for storage changes
-    const handleStorageChange = () => loadFiles();
+    // Set up real-time socket connection
+    const socket: Socket = io();
 
-    const handleFileDeleted = (event: CustomEvent) => {
-      console.log('File deleted event received in category:', event.detail);
-      loadFiles(); // Refresh the file list immediately
-    };
+    socket.on('file-uploaded', (newFile) => {
+      queryClient.setQueryData(['files', 'category', category], (oldFiles: any[] = []) => {
+        const updatedFiles = [{ ...newFile, uploadedAt: new Date(newFile.uploadedAt) }, ...oldFiles];
+        setFiles(updatedFiles); // Update local state as well
+        return updatedFiles;
+      });
+      queryClient.invalidateQueries({ queryKey: ['files'] });
+      toast({
+        title: "New File Uploaded",
+        description: `"${newFile.name}" has been uploaded.`,
+      });
+    });
 
-    window.addEventListener('storage', handleStorageChange);
-    window.addEventListener('file-deleted', handleFileDeleted as EventListener);
+    socket.on('file-deleted', (data) => {
+      queryClient.setQueryData(['files', 'category', category], (oldFiles: any[] = []) => {
+        const updatedFiles = oldFiles.filter(file => file.id !== data.fileId);
+        setFiles(updatedFiles); // Update local state as well
+        return updatedFiles;
+      });
+      queryClient.invalidateQueries({ queryKey: ['files'] });
+      toast({
+        title: "File Deleted",
+        description: `A file has been deleted.`,
+      });
+    });
 
     return () => {
-      window.removeEventListener('storage', handleStorageChange);
-      window.removeEventListener('file-deleted', handleFileDeleted as EventListener);
+      socket.disconnect();
     };
-  }, [category]);
+  }, [category, queryClient, toast]);
 
   const getFilteredFiles = () => {
     if (!searchQuery) {
       return files;
     }
-    return fileStorage.searchFiles(searchQuery, category);
+    // Assuming fileStorage.searchFiles can also use the API or a client-side filter if needed
+    // For now, we'll filter the already fetched files
+    return files.filter(file => 
+      file.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      file.description?.toLowerCase().includes(searchQuery.toLowerCase())
+    );
   };
 
   const displayFiles = getFilteredFiles();
@@ -145,9 +176,9 @@ export default function Category() {
           </div>
         </div>
 
-        {/* Search */}
-        <div className="mb-6 bg-gradient-to-r from-white/80 to-blue-50/80 backdrop-blur-sm rounded-xl p-4 shadow-lg border border-blue-200">
-          <div className="relative">
+        {/* Search and Upload Button */}
+        <div className="mb-6 bg-gradient-to-r from-white/80 to-blue-50/80 backdrop-blur-sm rounded-xl p-4 shadow-lg border border-blue-200 flex justify-between items-center">
+          <div className="relative w-1/2">
             <Search className="h-5 w-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-blue-400" />
             <Input
               type="text"
@@ -157,6 +188,13 @@ export default function Category() {
               className="pl-10 border-blue-300 focus:border-blue-500 focus:ring-blue-500 bg-white/80"
             />
           </div>
+          <Button 
+            onClick={() => setShowUploadModal(true)}
+            className="bg-primary text-white hover:bg-blue-800 flex items-center"
+          >
+            <Upload className="h-4 w-4 mr-2" />
+            Upload File
+          </Button>
         </div>
 
         {/* Files Grid */}
@@ -201,13 +239,30 @@ export default function Category() {
         onClose={() => setDeleteTarget(null)}
         onPasswordSubmit={(password) => {
           if (deleteTarget && password === "Ak47") {
-            fileStorage.deleteFile(deleteTarget.id);
-            handleFileDelete();
-            setDeleteTarget(null);
-            toast({
-              title: "File Deleted",
-              description: `"${deleteTarget.name}" has been successfully deleted.`,
-              className: "bg-gradient-to-r from-green-50 to-emerald-50 border-green-200",
+            // Call API to delete file
+            fetch('/api/files/delete', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ id: deleteTarget.id }),
+            })
+            .then(res => {
+              if (!res.ok) throw new Error('Failed to delete file');
+              // Optimistically update UI, socket listener will confirm
+              setFiles(files.filter(file => file.id !== deleteTarget.id));
+              setDeleteTarget(null);
+              toast({
+                title: "File Deleted",
+                description: `"${deleteTarget.name}" has been successfully deleted.`,
+                className: "bg-gradient-to-r from-green-50 to-emerald-50 border-green-200",
+              });
+            })
+            .catch(error => {
+              console.error('Error deleting file:', error);
+              toast({
+                title: "Error",
+                description: "Failed to delete file. Please try again.",
+                variant: "destructive",
+              });
             });
           } else {
             toast({
@@ -216,6 +271,19 @@ export default function Category() {
               variant: "destructive",
             });
           }
+        }}
+      />
+      <UploadModal
+        isOpen={showUploadModal}
+        onClose={() => setShowUploadModal(false)}
+        category={category}
+        onUploadSuccess={() => {
+          // The socket listener will handle updating the file list
+          toast({
+            title: "Upload Successful",
+            description: "Your file is now visible to everyone.",
+            className: "bg-gradient-to-r from-green-50 to-emerald-50 border-green-200",
+          });
         }}
       />
 

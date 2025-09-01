@@ -3,6 +3,8 @@ import { Button } from "@/components/ui/button";
 import { FileData, fileStorage } from "@/lib/fileStorage";
 import { useState } from "react";
 import DeleteConfirmationModal from "./delete-confirmation-modal";
+import { toast } from "@/components/ui/use-toast";
+
 
 interface FileCardProps {
   file: FileData;
@@ -39,7 +41,8 @@ export default function FileCard({ file, onPreview, onDelete }: FileCardProps) {
   };
 
   const handleDownload = () => {
-    try {
+    if (file.data) {
+      // LocalStorage file
       const url = fileStorage.getFileUrl(file);
       const link = document.createElement('a');
       link.href = url;
@@ -48,19 +51,36 @@ export default function FileCard({ file, onPreview, onDelete }: FileCardProps) {
       link.click();
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
-    } catch (error) {
-      console.error('Download failed:', error);
-      // Show user-friendly error message
-      alert('Failed to download file. Please try again.');
+    } else {
+      // Backend file
+      const url = fileStorage.getFileDownloadUrl(file.id);
+      window.open(url, '_blank');
     }
   };
 
-  const handleDelete = () => {
-    const success = fileStorage.deleteFile(file.id);
-    if (success && onDelete) {
-      onDelete();
-      // Trigger a storage event to refresh file lists across components
-      window.dispatchEvent(new Event('storage'));
+  const handleDelete = async (password: string) => {
+    try {
+      const success = await fileStorage.deleteFileFromAPI(file.id, password);
+      if (success) {
+        onDelete?.();
+        toast({
+          title: "Success",
+          description: "File deleted successfully!",
+          className: "bg-gradient-to-r from-green-50 to-emerald-50 border-green-200",
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to delete file",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error", 
+        description: error instanceof Error ? error.message : "Failed to delete file",
+        variant: "destructive",
+      });
     }
   };
 
@@ -105,7 +125,7 @@ export default function FileCard({ file, onPreview, onDelete }: FileCardProps) {
           </Button>
         </div>
       </div>
-      
+
       <DeleteConfirmationModal
         isOpen={showDeleteModal}
         onClose={() => setShowDeleteModal(false)}
