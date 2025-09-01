@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { Lock, Key, Save, ArrowLeft, Shield, MessageCircle, Upload, Trash2, Link, FileText, ChevronDown, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -36,6 +36,23 @@ export default function AdminDashboard() {
   // Website status states
   const [isWebsiteOnline, setIsWebsiteOnline] = useState(true);
   const [isLoadingWebsiteToggle, setIsLoadingWebsiteToggle] = useState(false);
+
+  // Load initial website status
+  useEffect(() => {
+    const loadWebsiteStatus = async () => {
+      try {
+        const response = await fetch('/api/website/status');
+        if (response.ok) {
+          const data = await response.json();
+          setIsWebsiteOnline(data.isOnline);
+        }
+      } catch (error) {
+        console.error('Failed to load website status:', error);
+      }
+    };
+    
+    loadWebsiteStatus();
+  }, []);
 
   // Toggle section expansion
   const toggleSection = (sectionId: string) => {
@@ -180,6 +197,48 @@ export default function AdminDashboard() {
       setConfirmChatPassword,
       'Chat Room'
     );
+
+  // Website toggle handler
+  const handleWebsiteToggle = async () => {
+    setIsLoadingWebsiteToggle(true);
+    try {
+      const response = await fetch('/api/admin/toggle-website', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          isOnline: !isWebsiteOnline,
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setIsWebsiteOnline(data.isOnline);
+        toast({
+          title: data.isOnline ? "Website Enabled" : "Website Disabled",
+          description: data.message,
+          className: data.isOnline 
+            ? "bg-gradient-to-r from-green-50 to-emerald-50 border-green-200"
+            : "bg-gradient-to-r from-red-50 to-rose-50 border-red-200",
+        });
+      } else {
+        const error = await response.json();
+        toast({
+          title: "Error",
+          description: error.message || "Failed to toggle website status.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Network error. Please try again.",
+        variant: "destructive",
+      });
+    }
+    setIsLoadingWebsiteToggle(false);
+  };
 
   // Component for rendering collapsible password sections
   const CollapsiblePasswordSection = ({
@@ -326,8 +385,60 @@ export default function AdminDashboard() {
             <p className="text-sm text-gray-500 mt-2">Click on any section below to expand password settings</p>
           </div>
 
+          {/* Website Control Section */}
+          <div className="mb-8 p-6 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl border border-indigo-200 shadow-lg">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="flex items-center gap-4">
+                <div className="bg-gradient-to-br from-indigo-100 to-purple-100 w-12 h-12 rounded-full flex items-center justify-center shadow-md">
+                  <Shield className="h-6 w-6 text-indigo-600" />
+                </div>
+                <div className="text-center sm:text-left">
+                  <h3 className="text-xl font-bold text-gray-800">Website Control</h3>
+                  <p className="text-gray-600">Turn the website on or off for all users</p>
+                </div>
+              </div>
+              
+              <div className="flex flex-col items-center gap-3">
+                <div className={`px-4 py-2 rounded-full text-sm font-bold ${
+                  isWebsiteOnline 
+                    ? 'bg-green-100 text-green-800 border border-green-200' 
+                    : 'bg-red-100 text-red-800 border border-red-200'
+                }`}>
+                  Status: {isWebsiteOnline ? 'ONLINE' : 'OFFLINE'}
+                </div>
+                
+                <Button
+                  onClick={handleWebsiteToggle}
+                  disabled={isLoadingWebsiteToggle}
+                  className={`px-8 py-3 rounded-xl text-lg font-bold shadow-xl transform hover:scale-105 transition-all duration-300 ${
+                    isWebsiteOnline
+                      ? 'bg-gradient-to-r from-red-600 to-rose-600 text-white hover:from-red-700 hover:to-rose-700'
+                      : 'bg-gradient-to-r from-green-600 to-emerald-600 text-white hover:from-green-700 hover:to-emerald-700'
+                  }`}
+                >
+                  {isLoadingWebsiteToggle ? (
+                    <div className="flex items-center gap-2">
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                      Processing...
+                    </div>
+                  ) : (
+                    <>
+                      {isWebsiteOnline ? 'Turn Website OFF' : 'Turn Website ON'}
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+            
+            <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+              <p className="text-yellow-700 text-sm">
+                <strong>Note:</strong> When the website is turned off, all users will see a "No Signal" page instead of the main content.
+              </p>
+            </div>
+          </div>
+
           {/* Collapsible Password Sections */}
-          <div className="space-y-4">
+          <div className="space-y-4"></div>
             {/* File Upload Password */}
             <CollapsiblePasswordSection
               sectionId="file-upload"
