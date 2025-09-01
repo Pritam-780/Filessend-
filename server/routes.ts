@@ -282,7 +282,7 @@ export async function registerRoutes(app: Express, io?: SocketIOServer): Promise
       const { username, password } = req.body;
 
       // Simple authentication check
-      if (username === "admin" && password === adminPassword) {
+      if (username === "crazy_pritam" && password === adminPassword) {
         res.json({
           message: "Login successful",
           timestamp: new Date().toISOString()
