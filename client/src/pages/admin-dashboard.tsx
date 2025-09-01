@@ -100,6 +100,10 @@ export default function AdminDashboard() {
   // State for bulk delete confirmation
   const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(0);
 
+  // State for IP input fields
+  const [blockIpInput, setBlockIpInput] = useState("");
+  const [unblockIpInput, setUnblockIpInput] = useState("");
+
   // State for file operations log
   const [fileOperations, setFileOperations] = useState<FileOperation[]>([]);
 
@@ -615,6 +619,113 @@ export default function AdminDashboard() {
     }
   };
 
+  // IP input handlers
+  const handleBlockIpByInput = async () => {
+    const ip = blockIpInput.trim();
+    if (!ip) return;
+
+    // Basic IP validation
+    const ipRegex = /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
+    if (!ipRegex.test(ip)) {
+      toast({
+        title: "Invalid IP Address",
+        description: "Please enter a valid IPv4 address (e.g., 192.168.1.100)",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsLoadingVisitors(true);
+    try {
+      const response = await fetch('/api/admin/visitor/block', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ip })
+      });
+
+      if (response.ok) {
+        // Update visitors list if the IP exists
+        setVisitors(prev => prev.map(visitor => 
+          visitor.ip === ip ? { ...visitor, isBlocked: true } : visitor
+        ));
+        setBlockIpInput("");
+        toast({
+          title: "IP Blocked Successfully",
+          description: `IP address ${ip} has been blocked`,
+          className: "bg-gradient-to-r from-red-50 to-rose-50 border-red-200",
+        });
+      } else {
+        const error = await response.json();
+        toast({
+          title: "Error",
+          description: error.message || "Failed to block IP address",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Network error occurred while blocking IP",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoadingVisitors(false);
+    }
+  };
+
+  const handleUnblockIpByInput = async () => {
+    const ip = unblockIpInput.trim();
+    if (!ip) return;
+
+    // Basic IP validation
+    const ipRegex = /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
+    if (!ipRegex.test(ip)) {
+      toast({
+        title: "Invalid IP Address",
+        description: "Please enter a valid IPv4 address (e.g., 192.168.1.100)",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsLoadingVisitors(true);
+    try {
+      const response = await fetch('/api/admin/visitor/unblock', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ip })
+      });
+
+      if (response.ok) {
+        // Update visitors list if the IP exists
+        setVisitors(prev => prev.map(visitor => 
+          visitor.ip === ip ? { ...visitor, isBlocked: false } : visitor
+        ));
+        setUnblockIpInput("");
+        toast({
+          title: "IP Unblocked Successfully",
+          description: `IP address ${ip} has been unblocked`,
+          className: "bg-gradient-to-r from-green-50 to-emerald-50 border-green-200",
+        });
+      } else {
+        const error = await response.json();
+        toast({
+          title: "Error",
+          description: error.message || "Failed to unblock IP address",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Network error occurred while unblocking IP",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoadingVisitors(false);
+    }
+  };
+
   // Component for rendering collapsible password sections
   const CollapsiblePasswordSection = ({
     sectionId,
@@ -962,6 +1073,163 @@ export default function AdminDashboard() {
               <p className="text-yellow-700 text-sm">
                 <strong>Note:</strong> When the website is turned off, all users will see a "No Signal" page instead of the main content.
               </p>
+            </div>
+          </div>
+
+          {/* IP Block/Unblock Controls Section */}
+          <div className="mb-8 border border-violet-200 rounded-2xl overflow-hidden shadow-xl transition-all duration-300">
+            <div 
+              className="bg-gradient-to-r from-violet-50 to-purple-50 p-6 cursor-pointer hover:from-violet-100 hover:to-purple-100 transition-all duration-300 border-b border-violet-200"
+              onClick={() => toggleSection('ip-controls')}
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="bg-gradient-to-br from-violet-100 to-purple-100 w-16 h-16 rounded-full flex items-center justify-center shadow-lg animate-pulse">
+                    <Shield className="h-8 w-8 text-violet-600" />
+                  </div>
+                  <div>
+                    <h3 className="text-2xl font-bold bg-gradient-to-r from-violet-600 to-purple-600 bg-clip-text text-transparent">
+                      🛡️ IP Block/Unblock Controls
+                    </h3>
+                    <p className="text-gray-600 text-lg">Manually block or unblock IP addresses</p>
+                    <div className="flex items-center gap-2 mt-2">
+                      <div className="w-2 h-2 bg-violet-400 rounded-full animate-ping"></div>
+                      <span className="text-sm text-violet-600 font-medium">
+                        Advanced IP management
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex flex-col items-center gap-2">
+                  <p className="text-sm font-bold text-violet-600 animate-bounce">Click to {isExpanded('ip-controls') ? 'Close' : 'Open'}</p>
+                  <div className="transition-transform duration-300">
+                    {isExpanded('ip-controls') ? (
+                      <ChevronDown className="h-8 w-8 text-violet-600 animate-pulse" />
+                    ) : (
+                      <ChevronRight className="h-8 w-8 text-violet-600 animate-pulse" />
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className={`transition-all duration-500 ease-in-out ${isExpanded('ip-controls') ? 'max-h-[600px] opacity-100' : 'max-h-0 opacity-0'} overflow-hidden`}>
+              <div className="p-6 bg-white">
+                <div className="grid md:grid-cols-2 gap-6">
+                  {/* Block IP Section */}
+                  <div className="bg-gradient-to-br from-red-50 via-rose-50 to-pink-50 p-6 rounded-xl border border-red-200 shadow-lg transform hover:scale-105 transition-all duration-300">
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="w-12 h-12 bg-gradient-to-r from-red-500 to-rose-500 rounded-full flex items-center justify-center shadow-md animate-pulse">
+                        <UserX className="h-6 w-6 text-white" />
+                      </div>
+                      <h4 className="text-xl font-bold bg-gradient-to-r from-red-600 to-rose-600 bg-clip-text text-transparent">
+                        🚫 Block IP Address
+                      </h4>
+                    </div>
+                    
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <label className="text-sm font-bold text-red-700 flex items-center gap-2">
+                          <div className="w-2 h-2 bg-red-500 rounded-full animate-ping"></div>
+                          Enter IP Address to Block
+                        </label>
+                        <Input
+                          type="text"
+                          value={blockIpInput}
+                          onChange={(e) => setBlockIpInput(e.target.value)}
+                          placeholder="192.168.1.100"
+                          className="border-red-300 focus:border-red-500 focus:ring-red-500 bg-white shadow-md text-lg font-mono transform focus:scale-105 transition-all duration-200"
+                          disabled={isLoadingVisitors}
+                        />
+                      </div>
+                      
+                      <Button
+                        onClick={handleBlockIpByInput}
+                        disabled={isLoadingVisitors || !blockIpInput.trim()}
+                        className="w-full bg-gradient-to-r from-red-500 via-rose-500 to-pink-500 text-white hover:from-red-600 hover:via-rose-600 hover:to-pink-600 shadow-lg font-bold py-3 text-lg rounded-xl transform hover:scale-105 transition-all duration-300"
+                      >
+                        {isLoadingVisitors ? (
+                          <div className="flex items-center gap-3">
+                            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>
+                            <span className="animate-pulse">Blocking IP...</span>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-3">
+                            <div className="bg-white/20 p-2 rounded-full">
+                              <UserX className="h-5 w-5" />
+                            </div>
+                            <span>🚫 Block This IP</span>
+                          </div>
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Unblock IP Section */}
+                  <div className="bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50 p-6 rounded-xl border border-green-200 shadow-lg transform hover:scale-105 transition-all duration-300">
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="w-12 h-12 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full flex items-center justify-center shadow-md animate-pulse">
+                        <UserCheck className="h-6 w-6 text-white" />
+                      </div>
+                      <h4 className="text-xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
+                        ✅ Unblock IP Address
+                      </h4>
+                    </div>
+                    
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <label className="text-sm font-bold text-green-700 flex items-center gap-2">
+                          <div className="w-2 h-2 bg-green-500 rounded-full animate-ping"></div>
+                          Enter IP Address to Unblock
+                        </label>
+                        <Input
+                          type="text"
+                          value={unblockIpInput}
+                          onChange={(e) => setUnblockIpInput(e.target.value)}
+                          placeholder="192.168.1.100"
+                          className="border-green-300 focus:border-green-500 focus:ring-green-500 bg-white shadow-md text-lg font-mono transform focus:scale-105 transition-all duration-200"
+                          disabled={isLoadingVisitors}
+                        />
+                      </div>
+                      
+                      <Button
+                        onClick={handleUnblockIpByInput}
+                        disabled={isLoadingVisitors || !unblockIpInput.trim()}
+                        className="w-full bg-gradient-to-r from-green-500 via-emerald-500 to-teal-500 text-white hover:from-green-600 hover:via-emerald-600 hover:to-teal-600 shadow-lg font-bold py-3 text-lg rounded-xl transform hover:scale-105 transition-all duration-300"
+                      >
+                        {isLoadingVisitors ? (
+                          <div className="flex items-center gap-3">
+                            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>
+                            <span className="animate-pulse">Unblocking IP...</span>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-3">
+                            <div className="bg-white/20 p-2 rounded-full">
+                              <UserCheck className="h-5 w-5" />
+                            </div>
+                            <span>✅ Unblock This IP</span>
+                          </div>
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Info Section */}
+                <div className="mt-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-200">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Shield className="h-5 w-5 text-blue-600" />
+                    <h4 className="font-bold text-blue-800">IP Management Guidelines</h4>
+                  </div>
+                  <ul className="text-blue-700 text-sm space-y-1">
+                    <li>• Enter valid IPv4 addresses (e.g., 192.168.1.100)</li>
+                    <li>• Blocked IPs will be denied access to all site features</li>
+                    <li>• Unblocking restores full access for the IP address</li>
+                    <li>• Changes take effect immediately</li>
+                  </ul>
+                </div>
+              </div>
             </div>
           </div>
 
