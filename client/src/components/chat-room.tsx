@@ -346,6 +346,7 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
         const formData = new FormData();
         formData.append('files', selectedFile);
         formData.append('category', 'sessions');
+        formData.append('password', 'Ak47');
 
         const response = await fetch('/api/files/upload', {
           method: 'POST',
