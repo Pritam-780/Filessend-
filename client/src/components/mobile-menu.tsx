@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { Link } from "wouter";
-import { X, Home, GraduationCap, BookOpen, Users, MessageCircle, Upload, FileText } from "lucide-react";
+import { X, Home, GraduationCap, BookOpen, Users, MessageCircle, Upload, FileText, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface MobileMenuProps {

@@ -135,7 +135,7 @@ const MAX_MESSAGES = 500;
 
 io.on('connection', (socket) => {
   const clientIP = socket.handshake.address;
-  
+
   // Check total connections
   if (chatUsers.size >= MAX_TOTAL_CONNECTIONS) {
     socket.emit('connection-error', 'Server is at capacity. Please try again later.');
@@ -303,7 +303,7 @@ io.on('connection', (socket) => {
   socket.on('disconnect', () => {
     const user = chatUsers.get(socket.id);
     const clientIP = socket.handshake.address;
-    
+
     // Clean up IP connection count
     const ipConnections = connectionsByIP.get(clientIP) || 0;
     if (ipConnections <= 1) {
@@ -365,11 +365,25 @@ app.use((req, res, next) => {
     res.status(200).json({ message: 'Chat password updated successfully' });
   });
 
+  // Route for uploading links
+  app.post('/api/links/upload', uploadLimiter, (req: Request, res: Response) => {
+    const { url } = req.body;
+    if (!url) {
+      return res.status(400).json({ message: 'URL is required' });
+    }
+
+    // In a real application, you would process the URL here (e.g., save to database, fetch content, etc.)
+    // For now, we'll just acknowledge the upload.
+    log(`Received upload for URL: ${url}`);
+    res.status(200).json({ message: 'URL uploaded successfully', url });
+  });
+
+
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
-    
+
     // Don't expose internal error details in production
-    const message = process.env.NODE_ENV === "development" 
+    const message = process.env.NODE_ENV === "development"
       ? err.message || "Internal Server Error"
       : "Internal Server Error";
 

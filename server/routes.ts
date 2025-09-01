@@ -450,6 +450,102 @@ export async function registerRoutes(app: Express, io?: SocketIOServer): Promise
     }
   });
 
+  // In-memory storage for links
+  let links: Array<{
+    id: string;
+    title: string;
+    description: string;
+    url: string;
+    uploadedAt: string;
+  }> = [];
+
+  // Get all links
+  app.get("/api/links", (req, res) => {
+    try {
+      res.json(links);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch links" });
+    }
+  });
+
+  // Upload a new link
+  app.post("/api/links/upload", (req, res) => {
+    try {
+      const { title, description, url, password } = req.body;
+
+      // Verify password for link upload
+      if (!password || password !== "Ak47") {
+        return res.status(403).json({ message: "Access denied. Invalid password required for link upload." });
+      }
+
+      if (!title || !description || !url) {
+        return res.status(400).json({ message: "Title, description, and URL are required" });
+      }
+
+      // Validate URL format
+      try {
+        new URL(url);
+      } catch {
+        return res.status(400).json({ message: "Invalid URL format" });
+      }
+
+      if (!validateInput(title, 200) || !validateInput(description, 1000) || !validateInput(url, 500)) {
+        return res.status(400).json({ message: "Invalid input format or length" });
+      }
+
+      const newLink = {
+        id: Date.now().toString(),
+        title: title.trim(),
+        description: description.trim(),
+        url: url.trim(),
+        uploadedAt: new Date().toISOString()
+      };
+
+      links.unshift(newLink); // Add to beginning of array
+
+      // Broadcast link upload to all connected clients
+      if (io) {
+        io.emit('link-uploaded', newLink);
+      }
+
+      res.json(newLink);
+    } catch (error) {
+      console.error("Link upload error:", error);
+      res.status(500).json({ message: "Failed to upload link" });
+    }
+  });
+
+  // Delete a link
+  app.delete("/api/links/:id", (req, res) => {
+    try {
+      const { id } = req.params;
+      const { password } = req.body;
+
+      // Verify password for link deletion
+      if (!password || password !== "Ak47") {
+        return res.status(403).json({ message: "Access denied. Invalid password required for link deletion." });
+      }
+
+      const linkIndex = links.findIndex(link => link.id === id);
+      if (linkIndex === -1) {
+        return res.status(404).json({ message: "Link not found" });
+      }
+
+      const deletedLink = links[linkIndex];
+      links.splice(linkIndex, 1);
+
+      // Broadcast link deletion to all connected clients
+      if (io) {
+        io.emit('link-deleted', { linkId: id });
+      }
+
+      res.json({ message: "Link deleted successfully" });
+    } catch (error) {
+      console.error("Link deletion error:", error);
+      res.status(500).json({ message: "Failed to delete link" });
+    }
+  });
+
   // Individual password management routes
   app.post("/api/admin/change-file-upload-password", async (req, res) => {
     try {

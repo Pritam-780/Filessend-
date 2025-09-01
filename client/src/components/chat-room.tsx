@@ -279,18 +279,43 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
 
     setIsConnecting(true);
 
+    // Set a timeout to handle slow connections
+    const authTimeout = setTimeout(() => {
+      if (isConnecting) {
+        setIsConnecting(false);
+        toast({
+          title: "Connection Timeout",
+          description: "Login is taking too long. Please try again.",
+          variant: "destructive",
+        });
+      }
+    }, 10000); // 10 second timeout
+
     socket?.emit('join-chat', {
       username: username.trim(),
       password: password
     });
 
+    // Handle successful authentication
     socket?.once('message-history', () => {
+      clearTimeout(authTimeout);
       setIsAuthenticated(true);
       setIsConnecting(false);
       toast({
         title: "Welcome to Chat!",
         description: `You're now connected as ${username}`,
         className: "bg-blue-50 border-blue-200",
+      });
+    });
+
+    // Handle authentication errors
+    socket?.once('auth-error', (error: string) => {
+      clearTimeout(authTimeout);
+      setIsConnecting(false);
+      toast({
+        title: "Authentication Failed",
+        description: error || "Invalid username or password",
+        variant: "destructive",
       });
     });
   };
