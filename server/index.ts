@@ -127,6 +127,9 @@ export function getActiveChatUsers() {
   }));
 }
 
+// Make sure the function is available for require() calls
+module.exports = { getActiveChatUsers };
+
 let messageHistory: Array<{
   id: string;
   username: string;

@@ -937,14 +937,19 @@ export async function registerRoutes(app: Express, io?: SocketIOServer): Promise
   // Get active chat room users for admin dashboard
   app.get("/api/admin/chat-users", (req, res) => {
     try {
-      // Note: In a real implementation, you would import getActiveChatUsers from index.ts
-      // For now, this returns a placeholder response
+      // Import the function from index.ts to get real chat users
+      const { getActiveChatUsers } = require('./index');
+      const activeChatUsers = getActiveChatUsers();
+      
       res.json({ 
-        activeChatUsers: [],
-        totalActive: 0,
-        message: "Chat room monitoring is active. Users will appear here when they join the chat."
+        activeChatUsers,
+        totalActive: activeChatUsers.length,
+        message: activeChatUsers.length > 0 
+          ? `${activeChatUsers.length} users currently in chat room`
+          : "No users currently in the chat room"
       });
     } catch (error) {
+      console.error('Error fetching chat users:', error);
       res.status(500).json({ message: "Failed to fetch chat room users" });
     }
   });

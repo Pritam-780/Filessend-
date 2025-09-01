@@ -110,6 +110,10 @@ export default function AdminDashboard() {
   // State for link operations log
   const [linkOperations, setLinkOperations] = useState<LinkOperation[]>([]);
 
+  // State for chat room users
+  const [activeChatUsers, setActiveChatUsers] = useState<Array<{username: string, ip: string, joinedAt: number, socketId: string}>>([]);
+  const [isLoadingChatUsers, setIsLoadingChatUsers] = useState(false);
+
   // Load initial website status and announcements
   useEffect(() => {
     const loadWebsiteStatus = async () => {
@@ -159,9 +163,31 @@ export default function AdminDashboard() {
       setIsLoadingVisitors(false);
     };
 
+    const loadActiveChatUsers = async () => {
+      setIsLoadingChatUsers(true);
+      try {
+        const response = await fetch('/api/admin/chat-users');
+        if (response.ok) {
+          const data = await response.json();
+          setActiveChatUsers(data.activeChatUsers || []);
+        }
+      } catch (error) {
+        console.error('Failed to load chat users:', error);
+      }
+      setIsLoadingChatUsers(false);
+    };
+
     loadWebsiteStatus();
     loadCurrentAnnouncement();
     loadVisitors();
+    loadActiveChatUsers();
+
+    // Set up interval to refresh chat users every 5 seconds
+    const chatUsersInterval = setInterval(loadActiveChatUsers, 5000);
+    
+    return () => {
+      clearInterval(chatUsersInterval);
+    };
   }, []);
 
   // Toggle section expansion
@@ -1114,47 +1140,110 @@ export default function AdminDashboard() {
               </div>
             </div>
 
-            <div className={`transition-all duration-500 ease-in-out ${isExpanded('chat-room-operator') ? 'max-h-[600px] opacity-100' : 'max-h-0 opacity-0'} overflow-hidden`}>
+            <div className={`transition-all duration-500 ease-in-out ${isExpanded('chat-room-operator') ? 'max-h-[800px] opacity-100' : 'max-h-0 opacity-0'} overflow-hidden`}>
               <div className="p-6 bg-white">
                 <div className="bg-gradient-to-br from-teal-50 via-cyan-50 to-blue-50 p-6 rounded-xl border border-teal-200 shadow-lg">
-                  <div className="flex items-center gap-3 mb-4">
+                  <div className="flex items-center gap-3 mb-6">
                     <div className="w-12 h-12 bg-gradient-to-r from-teal-500 to-cyan-500 rounded-full flex items-center justify-center shadow-md animate-pulse">
                       <MessageCircle className="h-6 w-6 text-white" />
                     </div>
-                    <h4 className="text-xl font-bold bg-gradient-to-r from-teal-600 to-cyan-600 bg-clip-text text-transparent">
-                      🌐 Active Chat Room Users
-                    </h4>
+                    <div>
+                      <h4 className="text-xl font-bold bg-gradient-to-r from-teal-600 to-cyan-600 bg-clip-text text-transparent">
+                        🌐 Active Chat Room Users
+                      </h4>
+                      <div className="flex items-center gap-2 mt-1">
+                        <div className={`w-3 h-3 rounded-full animate-pulse ${activeChatUsers.length > 0 ? 'bg-green-500' : 'bg-gray-400'}`}></div>
+                        <span className="text-sm font-medium text-teal-700">
+                          {isLoadingChatUsers ? 'Loading...' : `${activeChatUsers.length} active users`}
+                        </span>
+                      </div>
+                    </div>
                   </div>
                   
                   <div className="bg-white p-4 rounded-lg border border-teal-200 shadow-inner">
-                    <p className="text-teal-700 text-sm mb-3 font-medium">
-                      📊 Monitor who's currently in the chat room - their names and IP addresses are tracked here:
-                    </p>
-                    
-                    <div className="bg-gradient-to-r from-teal-100 to-cyan-100 p-4 rounded-lg border border-teal-300">
-                      <div className="flex items-center gap-2 mb-2">
-                        <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
-                        <span className="font-bold text-teal-800">Live Chat Room Activity</span>
+                    {isLoadingChatUsers ? (
+                      <div className="flex items-center justify-center py-8">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-500"></div>
                       </div>
-                      <p className="text-teal-700 text-sm">
-                        ✅ When users join the chat room, their username and IP address will appear here automatically<br/>
-                        ✅ Real-time monitoring of all chat room participants<br/>
-                        ✅ Track user activity and session information<br/>
-                        ✅ IP addresses are hidden from chat users but visible to admin
-                      </p>
-                    </div>
+                    ) : activeChatUsers.length === 0 ? (
+                      <div className="text-center py-8">
+                        <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                          <MessageCircle className="h-8 w-8 text-gray-400" />
+                        </div>
+                        <p className="text-gray-500 font-medium text-lg">No Active Chat Users</p>
+                        <p className="text-gray-400 text-sm mt-2">When users join the chat room, they will appear here with their IP addresses</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between mb-4">
+                          <h5 className="font-bold text-teal-800 text-lg">👥 Current Chat Room Participants</h5>
+                          <div className="bg-teal-100 px-3 py-1 rounded-full">
+                            <span className="text-teal-800 font-bold text-sm">{activeChatUsers.length} Online</span>
+                          </div>
+                        </div>
+                        
+                        <div className="overflow-x-auto">
+                          <table className="min-w-full divide-y divide-teal-200 rounded-xl overflow-hidden shadow-lg">
+                            <thead className="bg-gradient-to-r from-teal-100 to-cyan-100">
+                              <tr>
+                                <th scope="col" className="px-6 py-3 text-left text-xs font-bold text-teal-800 uppercase tracking-wider">Username</th>
+                                <th scope="col" className="px-6 py-3 text-left text-xs font-bold text-teal-800 uppercase tracking-wider">IP Address</th>
+                                <th scope="col" className="px-6 py-3 text-left text-xs font-bold text-teal-800 uppercase tracking-wider">Joined At</th>
+                                <th scope="col" className="px-6 py-3 text-left text-xs font-bold text-teal-800 uppercase tracking-wider">Session Duration</th>
+                              </tr>
+                            </thead>
+                            <tbody className="bg-white divide-y divide-teal-100">
+                              {activeChatUsers.map((user, index) => {
+                                const joinedDate = new Date(user.joinedAt);
+                                const sessionDuration = Math.floor((Date.now() - user.joinedAt) / 1000 / 60); // minutes
+                                return (
+                                  <tr key={user.socketId} className={index % 2 === 0 ? 'bg-teal-25' : 'bg-white'}>
+                                    <td className="px-6 py-4 whitespace-nowrap">
+                                      <div className="flex items-center gap-2">
+                                        <div className="w-8 h-8 bg-gradient-to-r from-teal-400 to-cyan-400 rounded-full flex items-center justify-center text-white font-bold text-sm">
+                                          {user.username.charAt(0).toUpperCase()}
+                                        </div>
+                                        <span className="text-sm font-medium text-gray-900">{user.username}</span>
+                                      </div>
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap">
+                                      <span className="text-sm text-gray-900 font-mono bg-gray-100 px-2 py-1 rounded border">
+                                        {user.ip}
+                                      </span>
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                                      {joinedDate.toLocaleTimeString()}
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                                      <div className="flex items-center gap-1">
+                                        <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                                        {sessionDuration < 1 ? 'Just joined' : `${sessionDuration}m`}
+                                      </div>
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    )}
 
-                    <div className="mt-4 p-3 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
+                    <div className="mt-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
                       <div className="flex items-center gap-2 mb-2">
                         <Shield className="h-4 w-4 text-blue-600" />
-                        <span className="font-bold text-blue-800 text-sm">Chat Room Monitoring Features</span>
+                        <span className="font-bold text-blue-800 text-sm">Live Monitoring Status</span>
                       </div>
-                      <ul className="text-blue-700 text-xs space-y-1">
-                        <li>• Username + IP address tracking for all chat participants</li>
-                        <li>• Join/leave timestamps for session monitoring</li>
-                        <li>• Real-time updates when users enter or exit chat</li>
-                        <li>• Privacy protection - IPs only visible to admin</li>
-                      </ul>
+                      <div className="grid grid-cols-2 gap-4 text-blue-700 text-xs">
+                        <div>
+                          <p>✅ Real-time user tracking active</p>
+                          <p>✅ IP addresses captured and logged</p>
+                        </div>
+                        <div>
+                          <p>✅ Session duration monitoring</p>
+                          <p>✅ Auto-refresh every 5 seconds</p>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
