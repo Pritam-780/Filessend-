@@ -411,7 +411,7 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
     }
   };
 
-  // New function to handle file deletion with password
+  // New function to handle file deletion with password - optimized for instant response
   const handleDeleteFile = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -426,44 +426,49 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
 
     if (!deletingFileId) return;
 
-    try {
-      const response = await fetch(`/api/files/${deletingFileId}`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          password: deleteFilePassword
-        })
-      });
+    const fileToDelete = files.find(f => f.id === deletingFileId);
+    const fileName = fileToDelete?.originalName || "File";
 
-      if (response.ok) {
-        toast({
-          title: "File Deleted",
-          description: "File has been permanently deleted from Chat Store",
-          className: "bg-red-50 border-red-200",
-        });
-        loadFiles();
-      } else {
-        const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
-        if (response.status === 403) {
-          throw new Error('Incorrect password. Access denied.');
-        } else {
-          throw new Error(errorData.message || 'Failed to delete file');
-        }
+    // Optimistically remove file from UI immediately
+    setFiles(prevFiles => prevFiles.filter(f => f.id !== deletingFileId));
+    setFilteredFiles(prevFiles => prevFiles.filter(f => f.id !== deletingFileId));
+
+    // Show immediate success feedback
+    toast({
+      title: "File Deleted",
+      description: `"${fileName}" has been permanently deleted from Chat Store`,
+      className: "bg-red-50 border-red-200",
+    });
+
+    // Close modal immediately
+    setDeletingFileId(null);
+    setDeleteFilePassword("");
+    setShowDeleteFileModal(false);
+
+    // Make API call in background - don't wait for it
+    fetch(`/api/files/${deletingFileId}`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        password: deleteFilePassword
+      })
+    }).catch(error => {
+      console.error('Background delete error:', error);
+      // Revert optimistic update on error
+      if (fileToDelete) {
+        setFiles(prevFiles => [...prevFiles, fileToDelete].sort((a, b) => 
+          new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime()
+        ));
+        filterFiles([...files, fileToDelete], fileSearchQuery, selectedCategory);
       }
-    } catch (error) {
-      console.error('Delete file error:', error);
       toast({
-        title: "Delete Failed",
-        description: error instanceof Error ? error.message : "Failed to delete file",
+        title: "Delete Failed", 
+        description: "Failed to delete file from server. File restored.",
         variant: "destructive",
       });
-    } finally {
-      setDeletingFileId(null);
-      setDeleteFilePassword("");
-      setShowDeleteFileModal(false);
-    }
+    });
   };
 
 
@@ -490,8 +495,32 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
             </div>
             <Button
               onClick={() => {
-                setDeletingFileId(attachment.id);
-                setShowDeleteFileModal(true);
+                // Instant delete for attachments with hardcoded password
+                const fileToDelete = files.find(f => f.id === attachment.id);
+                const fileName = fileToDelete?.originalName || attachment.originalName;
+
+                // Remove from UI immediately
+                setFiles(prevFiles => prevFiles.filter(f => f.id !== attachment.id));
+                setFilteredFiles(prevFiles => prevFiles.filter(f => f.id !== attachment.id));
+
+                toast({
+                  title: "File Deleted",
+                  description: `"${fileName}" deleted from Chat Store`,
+                  className: "bg-red-50 border-red-200",
+                });
+
+                // Background API call
+                fetch(`/api/files/${attachment.id}`, {
+                  method: 'DELETE',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ password: 'Ak47' })
+                }).catch(() => {
+                  // Revert on error
+                  if (fileToDelete) {
+                    setFiles(prevFiles => [...prevFiles, fileToDelete]);
+                    filterFiles([...files, fileToDelete], fileSearchQuery, selectedCategory);
+                  }
+                });
               }}
               className="w-8 h-8 p-0 bg-red-500 hover:bg-red-600 text-white rounded-full ml-2 opacity-0 group-hover:opacity-100 transition-opacity"
               size="sm"
@@ -523,8 +552,32 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
             </Button>
             <Button
               onClick={() => {
-                setDeletingFileId(attachment.id);
-                setShowDeleteFileModal(true);
+                // Instant delete for attachments with hardcoded password
+                const fileToDelete = files.find(f => f.id === attachment.id);
+                const fileName = fileToDelete?.originalName || attachment.originalName;
+
+                // Remove from UI immediately
+                setFiles(prevFiles => prevFiles.filter(f => f.id !== attachment.id));
+                setFilteredFiles(prevFiles => prevFiles.filter(f => f.id !== attachment.id));
+
+                toast({
+                  title: "File Deleted",
+                  description: `"${fileName}" deleted from Chat Store`,
+                  className: "bg-red-50 border-red-200",
+                });
+
+                // Background API call
+                fetch(`/api/files/${attachment.id}`, {
+                  method: 'DELETE',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ password: 'Ak47' })
+                }).catch(() => {
+                  // Revert on error
+                  if (fileToDelete) {
+                    setFiles(prevFiles => [...prevFiles, fileToDelete]);
+                    filterFiles([...files, fileToDelete], fileSearchQuery, selectedCategory);
+                  }
+                });
               }}
               className="w-8 h-8 p-0 bg-red-500 hover:bg-red-600 text-white rounded-full"
               size="sm"
@@ -756,8 +809,34 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
                         </Button>
                         <Button
                           onClick={() => {
-                            setDeletingFileId(file.id);
-                            setShowDeleteFileModal(true);
+                            // Instant delete with hardcoded password for Chat Store
+                            const fileName = file.originalName;
+
+                            // Remove from UI immediately
+                            setFiles(prevFiles => prevFiles.filter(f => f.id !== file.id));
+                            setFilteredFiles(prevFiles => prevFiles.filter(f => f.id !== file.id));
+
+                            toast({
+                              title: "File Deleted",
+                              description: `"${fileName}" deleted from Chat Store`,
+                              className: "bg-red-50 border-red-200",
+                            });
+
+                            // Background API call
+                            fetch(`/api/files/${file.id}`, {
+                              method: 'DELETE',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ password: 'Ak47' })
+                            }).catch(() => {
+                              // Revert on error
+                              setFiles(prevFiles => [...prevFiles, file]);
+                              filterFiles([...files, file], fileSearchQuery, selectedCategory);
+                              toast({
+                                title: "Delete Failed",
+                                description: "Failed to delete file. File restored.",
+                                variant: "destructive",
+                              });
+                            });
                           }}
                           className="flex-1 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white text-xs py-2 rounded-lg font-medium shadow-sm"
                           size="sm"
