@@ -91,6 +91,19 @@ interface LinkUploadRecord {
 let fileUploads = new Map<string, FileUploadRecord>();
 let linkUploads = new Map<string, LinkUploadRecord>();
 
+// File operations tracking
+interface FileOperation {
+  id: string;
+  type: 'upload' | 'delete' | 'download' | 'preview';
+  fileName: string;
+  userName: string;
+  userIP: string;
+  timestamp: string;
+  fileId?: string;
+}
+
+let fileOperations: FileOperation[] = [];
+
 // Helper function for input validation
 function validateInput(input: string, maxLength: number): boolean {
   // Basic validation: check for empty string and length
@@ -354,6 +367,18 @@ export async function registerRoutes(app: Express, io?: SocketIOServer): Promise
         };
         fileUploads.set(savedFile.id, uploadRecord);
 
+        // Track file operation
+        const operation: FileOperation = {
+          id: `op-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          type: 'upload',
+          fileName: savedFile.originalName,
+          userName: uploaderName,
+          userIP: clientIP,
+          timestamp: savedFile.uploadedAt,
+          fileId: savedFile.id
+        };
+        fileOperations.unshift(operation);
+
         // Broadcast file upload to all connected clients and chat room
         if (io) {
           const fileUploadData = {
@@ -396,6 +421,9 @@ export async function registerRoutes(app: Express, io?: SocketIOServer): Promise
     try {
       const { id } = req.params;
       const file = await storage.getFile(id);
+      const clientIP = req.ip || req.connection.remoteAddress || req.socket.remoteAddress || 
+        (req.connection.socket ? req.connection.socket.remoteAddress : null) || 
+        req.headers['x-forwarded-for']?.split(',')[0]?.trim() || 'unknown';
 
       if (!file) {
         return res.status(404).json({ message: "File not found" });
@@ -406,6 +434,22 @@ export async function registerRoutes(app: Express, io?: SocketIOServer): Promise
       if (!fs.existsSync(filePath)) {
         return res.status(404).json({ message: "File not found on disk" });
       }
+
+      // Get user info for tracking
+      const visitor = visitors.get(clientIP);
+      const userName = visitor?.name || 'Anonymous';
+
+      // Track download operation
+      const operation: FileOperation = {
+        id: `op-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        type: 'download',
+        fileName: file.originalName,
+        userName,
+        userIP: clientIP,
+        timestamp: new Date().toISOString(),
+        fileId: id
+      };
+      fileOperations.unshift(operation);
 
       res.download(filePath, file.originalName);
     } catch (error) {
@@ -418,6 +462,9 @@ export async function registerRoutes(app: Express, io?: SocketIOServer): Promise
     try {
       const { id } = req.params;
       const file = await storage.getFile(id);
+      const clientIP = req.ip || req.connection.remoteAddress || req.socket.remoteAddress || 
+        (req.connection.socket ? req.connection.socket.remoteAddress : null) || 
+        req.headers['x-forwarded-for']?.split(',')[0]?.trim() || 'unknown';
 
       if (!file) {
         return res.status(404).json({ message: "File not found" });
@@ -428,6 +475,22 @@ export async function registerRoutes(app: Express, io?: SocketIOServer): Promise
       if (!fs.existsSync(filePath)) {
         return res.status(404).json({ message: "File not found on disk" });
       }
+
+      // Get user info for tracking
+      const visitor = visitors.get(clientIP);
+      const userName = visitor?.name || 'Anonymous';
+
+      // Track preview operation
+      const operation: FileOperation = {
+        id: `op-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        type: 'preview',
+        fileName: file.originalName,
+        userName,
+        userIP: clientIP,
+        timestamp: new Date().toISOString(),
+        fileId: id
+      };
+      fileOperations.unshift(operation);
 
       res.setHeader('Content-Type', file.mimeType);
       res.sendFile(path.resolve(filePath));
@@ -458,6 +521,25 @@ export async function registerRoutes(app: Express, io?: SocketIOServer): Promise
         fs.unlinkSync(filePath);
       }
 
+      // Get user info for tracking
+      const clientIP = req.ip || req.connection.remoteAddress || req.socket.remoteAddress || 
+        (req.connection.socket ? req.connection.socket.remoteAddress : null) || 
+        req.headers['x-forwarded-for']?.split(',')[0]?.trim() || 'unknown';
+      const visitor = visitors.get(clientIP);
+      const userName = visitor?.name || 'Anonymous';
+
+      // Track delete operation
+      const operation: FileOperation = {
+        id: `op-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        type: 'delete',
+        fileName: file.originalName,
+        userName,
+        userIP: clientIP,
+        timestamp: new Date().toISOString(),
+        fileId: id
+      };
+      fileOperations.unshift(operation);
+
       // Delete from storage
       await storage.deleteFile(id);
 
@@ -466,7 +548,9 @@ export async function registerRoutes(app: Express, io?: SocketIOServer): Promise
         io.emit('file-deleted', {
           fileId: id,
           fileName: file.originalName,
-          message: `File deleted: ${file.originalName}`,
+          userName,
+          userIP: clientIP,
+          message: `File deleted by ${userName} (${clientIP}): ${file.originalName}`,
           timestamp: new Date().toISOString()
         });
       }
@@ -789,7 +873,8 @@ export async function registerRoutes(app: Express, io?: SocketIOServer): Promise
       res.json({ 
         visitors: visitorList,
         fileUploads: Array.from(fileUploads.values()),
-        linkUploads: Array.from(linkUploads.values())
+        linkUploads: Array.from(linkUploads.values()),
+        fileOperations: fileOperations.slice(0, 1000) // Return last 1000 operations
       });
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch visitors" });
@@ -845,13 +930,39 @@ export async function registerRoutes(app: Express, io?: SocketIOServer): Promise
         return res.status(400).json({ message: "IP address is required" });
       }
 
+      // Remove from all tracking systems
       visitors.delete(ip);
       blockedIPs.delete(ip);
+      
+      // Remove from persistent history
+      for (const [key, visitor] of allVisitorHistory.entries()) {
+        if (visitor.ip === ip) {
+          allVisitorHistory.delete(key);
+        }
+      }
 
       console.log(`Visitor ${ip} deleted by admin`);
       res.json({ message: `Visitor ${ip} deleted successfully` });
     } catch (error) {
       res.status(500).json({ message: "Failed to delete visitor" });
+    }
+  });
+
+  // Bulk delete all visitor data
+  app.delete("/api/admin/visitors/bulk-delete", (req, res) => {
+    try {
+      // Clear all visitor data
+      visitors.clear();
+      allVisitorHistory.clear();
+      blockedIPs.clear();
+      fileUploads.clear();
+      linkUploads.clear();
+      fileOperations.length = 0; // Clear array
+
+      console.log("All visitor data deleted by admin");
+      res.json({ message: "All visitor data deleted successfully" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to bulk delete visitor data" });
     }
   });
 

@@ -248,6 +248,7 @@ io.on('connection', (socket) => {
     const message: any = {
       id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       username: user.username,
+      userIP: user.ip,
       message: sanitizedMessage,
       timestamp: Date.now()
     };

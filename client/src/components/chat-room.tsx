@@ -24,6 +24,7 @@ interface ChatMessage {
     mimeType: string;
     size: number;
   };
+  userIP?: string; // Added to store IP address
 }
 
 interface ChatRoomProps {
@@ -217,9 +218,9 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
       newSocket.on('file-uploaded', (fileData) => {
         // Refresh files immediately for real-time visibility
         loadFiles();
-        
+
         // Show notification for file uploads
-        const fileName = fileData.originalName || fileData.file?.originalName || "New file";
+        const fileName = fileData.originalName || "New file";
         toast({
           title: "📁 New File in Chat Store",
           description: `${fileName} was uploaded and is now available`,
@@ -917,9 +918,9 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
                               <div className="relative max-w-[80%]">
                                 {/* Reply indicator */}
                                 {msg.replyTo && (
-                                  <div className={`mb-1 p-2 rounded-t-lg border-l-4 text-xs ${
+                                  <div className={`mb-1 p-2 rounded-t-lg border-l-4 ${
                                     isMyMessage 
-                                      ? 'bg-[#dcf8c6] border-[#4fc3f7]' 
+                                      ? 'bg-[#dcf8c6] border-[#517da2]' 
                                       : 'bg-white border-gray-400'
                                   }`}>
                                     <div className="flex items-center gap-1 text-gray-600 mb-1">

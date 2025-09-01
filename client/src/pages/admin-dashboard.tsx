@@ -14,6 +14,7 @@ interface Visitor {
   lastActive: string;
   isBlocked: boolean;
   visitCount: number;
+  timestamp: string; // Added timestamp for visitor list
 }
 
 interface FileUploadRecord {
@@ -30,6 +31,15 @@ interface LinkUploadRecord {
   uploaderName: string;
   uploaderIP: string;
   uploadedAt: string;
+}
+
+// Interface for file operations log
+interface FileOperation {
+  type: 'upload' | 'delete' | 'view';
+  fileName: string;
+  userName?: string;
+  userIP?: string;
+  timestamp: string;
 }
 
 
@@ -77,6 +87,12 @@ export default function AdminDashboard() {
   const [fileUploads, setFileUploads] = useState<FileUploadRecord[]>([]);
   const [linkUploads, setLinkUploads] = useState<LinkUploadRecord[]>([]);
 
+  // State for bulk delete confirmation
+  const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(0);
+
+  // State for file operations log
+  const [fileOperations, setFileOperations] = useState<FileOperation[]>([]);
+
   // Load initial website status and announcements
   useEffect(() => {
     const loadWebsiteStatus = async () => {
@@ -112,6 +128,8 @@ export default function AdminDashboard() {
           setVisitors(data.visitors || []);
           setFileUploads(data.fileUploads || []);
           setLinkUploads(data.linkUploads || []);
+          // Assuming the API also returns file operations data
+          setFileOperations(data.fileOperations || []); 
         }
       } catch (error) {
         console.error('Failed to load visitors:', error);
@@ -465,10 +483,30 @@ export default function AdminDashboard() {
   };
 
   const handleDeleteVisitor = async (ip: string) => {
-    if (!window.confirm(`Are you sure you want to delete visitor ${ip}? This action cannot be undone.`)) {
+    // First confirmation
+    if (bulkDeleteConfirm === 0) {
+      setBulkDeleteConfirm(1);
+      toast({
+        title: "Confirm Deletion",
+        description: `Are you sure you want to delete visitor ${ip}? Click again to confirm.`,
+        variant: "default", // Use default or a warning color
+        duration: 5000, // Make it visible for a while
+      });
+      return;
+    }
+    // Second confirmation
+    if (bulkDeleteConfirm === 1) {
+      setBulkDeleteConfirm(2); // Set to final confirmation state
+      toast({
+        title: "Final Confirmation",
+        description: `This action is irreversible. Click one last time to permanently delete visitor ${ip}.`,
+        variant: "destructive",
+        duration: 5000,
+      });
       return;
     }
 
+    // Actual deletion if second confirmation is met
     setIsLoadingVisitors(true);
     try {
       const response = await fetch('/api/admin/visitor/delete', {
@@ -484,6 +522,13 @@ export default function AdminDashboard() {
           description: `Visitor ${ip} has been deleted successfully`,
           className: "bg-gradient-to-r from-blue-50 to-cyan-50 border-blue-200",
         });
+      } else {
+        const error = await response.json();
+        toast({
+          title: "Error",
+          description: error.message || "Failed to delete visitor",
+          variant: "destructive",
+        });
       }
     } catch (error) {
       toast({
@@ -491,8 +536,69 @@ export default function AdminDashboard() {
         description: "Failed to delete visitor",
         variant: "destructive",
       });
+    } finally {
+      setIsLoadingVisitors(false);
+      setBulkDeleteConfirm(0); // Reset confirmation state after action
     }
-    setIsLoadingVisitors(false);
+  };
+
+  // Bulk delete handler
+  const handleBulkDeleteVisitors = async () => {
+    if (bulkDeleteConfirm === 0) {
+      setBulkDeleteConfirm(1);
+      toast({
+        title: "Confirm Bulk Deletion",
+        description: "Are you sure you want to delete ALL visitor data? Click again to confirm.",
+        variant: "default",
+        duration: 5000,
+      });
+      return;
+    }
+    if (bulkDeleteConfirm === 1) {
+      setBulkDeleteConfirm(2);
+      toast({
+        title: "Final Confirmation for Bulk Delete",
+        description: "This action is irreversible and will delete ALL visitor, file, and link data. Click one last time to proceed.",
+        variant: "destructive",
+        duration: 5000,
+      });
+      return;
+    }
+
+    setIsLoadingVisitors(true);
+    try {
+      const response = await fetch('/api/admin/visitors/delete-all', {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        setVisitors([]);
+        setFileUploads([]);
+        setLinkUploads([]);
+        setFileOperations([]); // Clear file operations as well
+        toast({
+          title: "Bulk Delete Successful",
+          description: "All visitor data has been deleted successfully.",
+          className: "bg-gradient-to-r from-blue-50 to-cyan-50 border-blue-200",
+        });
+      } else {
+        const error = await response.json();
+        toast({
+          title: "Error",
+          description: error.message || "Failed to perform bulk delete.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Network error during bulk delete.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoadingVisitors(false);
+      setBulkDeleteConfirm(0); // Reset confirmation state
+    }
   };
 
   // Component for rendering collapsible password sections
@@ -936,6 +1042,7 @@ export default function AdminDashboard() {
                                       <UserCheck className="h-4 w-4 mr-1" />
                                       Unblock
                                     </Button>
+                                    {/* Delete button now appears after unblocking */}
                                     <Button
                                       size="sm"
                                       variant="outline"
@@ -967,6 +1074,35 @@ export default function AdminDashboard() {
                     </table>
                   </div>
                 )}
+
+                {/* Bulk Delete Section */}
+                <div className="mt-6 p-4 bg-gradient-to-r from-red-50 to-rose-50 rounded-xl border border-red-200">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="font-bold text-red-800 text-lg">🗑️ Bulk Delete All Visitor Data</h4>
+                      <p className="text-red-600 text-sm">Delete all visitor records, file uploads, and operation history</p>
+                      {bulkDeleteConfirm > 0 && (
+                        <p className="text-red-700 font-semibold text-sm mt-2">
+                          {bulkDeleteConfirm === 1 ? "⚠️ First confirmation received. Click again to proceed." : "🚨 FINAL WARNING: This will permanently delete ALL data!"}
+                        </p>
+                      )}
+                    </div>
+                    <Button
+                      onClick={handleBulkDeleteVisitors}
+                      disabled={isLoadingVisitors}
+                      className={`px-6 py-2 font-bold ${
+                        bulkDeleteConfirm === 0 
+                          ? 'bg-red-500 hover:bg-red-600' 
+                          : bulkDeleteConfirm === 1
+                          ? 'bg-orange-500 hover:bg-orange-600'
+                          : 'bg-red-700 hover:bg-red-800 animate-pulse'
+                      } text-white rounded-lg shadow-lg`}
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      {bulkDeleteConfirm === 0 ? 'Delete All' : bulkDeleteConfirm === 1 ? 'Confirm Delete' : 'FINAL DELETE'}
+                    </Button>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -1106,6 +1242,91 @@ export default function AdminDashboard() {
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{upload.uploaderIP}</td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                               {new Date(upload.uploadedAt).toLocaleString()}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* File Operations Tracking Section */}
+          <div className="mb-8 border border-amber-200 rounded-2xl overflow-hidden shadow-xl transition-all duration-300">
+            <div 
+              className="bg-gradient-to-r from-amber-50 to-yellow-50 p-6 cursor-pointer hover:from-amber-100 hover:to-yellow-100 transition-all duration-300 border-b border-amber-200"
+              onClick={() => toggleSection('file-operations')}
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="bg-gradient-to-br from-amber-100 to-yellow-100 w-16 h-16 rounded-full flex items-center justify-center shadow-lg">
+                    <FileText className="h-8 w-8 text-amber-600" />
+                  </div>
+                  <div>
+                    <h3 className="text-2xl font-bold bg-gradient-to-r from-amber-600 to-yellow-600 bg-clip-text text-transparent">
+                      📊 File Operations Log
+                    </h3>
+                    <p className="text-gray-600 text-lg">Track all file uploads, downloads, and deletions</p>
+                    <div className="flex items-center gap-2 mt-2">
+                      <div className="w-2 h-2 bg-amber-400 rounded-full animate-ping"></div>
+                      <span className="text-sm text-amber-600 font-medium">
+                        {fileOperations.length} operations tracked
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <div className="flex flex-col items-center gap-2">
+                  <p className="text-sm font-bold text-amber-600 animate-bounce">Click to {isExpanded('file-operations') ? 'Close' : 'Open'}</p>
+                  <div className="transition-transform duration-300">
+                    {isExpanded('file-operations') ? (
+                      <ChevronDown className="h-8 w-8 text-amber-600 animate-pulse" />
+                    ) : (
+                      <ChevronRight className="h-8 w-8 text-amber-600 animate-pulse" />
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className={`transition-all duration-500 ease-in-out ${isExpanded('file-operations') ? 'max-h-[800px] opacity-100' : 'max-h-0 opacity-0'} overflow-hidden`}>
+              <div className="p-6 bg-white">
+                {fileOperations.length === 0 ? (
+                  <div className="text-center py-10 text-gray-500">
+                    No file operations tracked yet.
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-gray-200 rounded-xl overflow-hidden shadow-lg">
+                      <thead className="bg-gradient-to-r from-amber-50 to-yellow-50">
+                        <tr>
+                          <th scope="col" className="px-6 py-3 text-left text-xs font-bold text-amber-600 uppercase tracking-wider">Operation</th>
+                          <th scope="col" className="px-6 py-3 text-left text-xs font-bold text-amber-600 uppercase tracking-wider">File Name</th>
+                          <th scope="col" className="px-6 py-3 text-left text-xs font-bold text-amber-600 uppercase tracking-wider">User Name</th>
+                          <th scope="col" className="px-6 py-3 text-left text-xs font-bold text-amber-600 uppercase tracking-wider">User IP</th>
+                          <th scope="col" className="px-6 py-3 text-left text-xs font-bold text-amber-600 uppercase tracking-wider">Timestamp</th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-gray-200">
+                        {fileOperations.map((operation, index) => (
+                          <tr key={index} className={operation.type === 'delete' ? 'bg-red-50' : 'bg-green-50'}>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                              <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+                                operation.type === 'upload' 
+                                  ? 'bg-green-100 text-green-800' 
+                                  : operation.type === 'delete'
+                                  ? 'bg-red-100 text-red-800'
+                                  : 'bg-blue-100 text-blue-800'
+                              }`}>
+                                {operation.type === 'upload' ? '📤 Upload' : operation.type === 'delete' ? '🗑️ Delete' : '👁️ View'}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{operation.fileName}</td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{operation.userName}</td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{operation.userIP}</td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                              {new Date(operation.timestamp).toLocaleString()}
                             </td>
                           </tr>
                         ))}
