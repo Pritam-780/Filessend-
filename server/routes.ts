@@ -158,7 +158,7 @@ function trackVisitor(req: any, res: any, next: any) {
   next();
 }
 
-export async function registerRoutes(app: Express, io?: SocketIOServer): Promise<void> {
+export async function registerRoutes(app: Express, io?: SocketIOServer, getChatUsers?: () => any[]): Promise<void> {
 
   // Apply visitor tracking to all routes except admin routes
   app.use((req, res, next) => {
@@ -937,9 +937,7 @@ export async function registerRoutes(app: Express, io?: SocketIOServer): Promise
   // Get active chat room users for admin dashboard
   app.get("/api/admin/chat-users", (req, res) => {
     try {
-      // Import the function from index.ts to get real chat users
-      const { getActiveChatUsers } = require('./index');
-      const activeChatUsers = getActiveChatUsers();
+      const activeChatUsers = getChatUsers ? getChatUsers() : [];
       
       res.json({ 
         activeChatUsers,

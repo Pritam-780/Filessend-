@@ -1,7 +1,7 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { createServer } from "http";
 import { Server } from "socket.io";
-import { registerRoutes } from "./routes";
+import { registerRoutes, getChatPassword } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import cors from "cors";
 import helmet from "helmet";
@@ -127,9 +127,6 @@ export function getActiveChatUsers() {
   }));
 }
 
-// Make sure the function is available for require() calls
-module.exports = { getActiveChatUsers };
-
 let messageHistory: Array<{
   id: string;
   username: string;
@@ -148,18 +145,7 @@ let messageHistory: Array<{
   };
 }> = [];
 
-// Placeholder for chat password management. In a real application, this would be stored securely (e.g., in environment variables or a database).
-let currentChatPassword = process.env.CHAT_PASSWORD || "Ak47"; // Default password
-
-function getChatPassword(): string {
-  return currentChatPassword;
-}
-
-// Function to change the chat password (would be called from an admin route)
-function setChatPassword(newPassword: string): void {
-  currentChatPassword = newPassword;
-  log(`Chat password updated to: ${newPassword}`);
-}
+// Chat password is managed in routes.ts
 
 
 // Keep only last 500 messages in memory
@@ -411,7 +397,7 @@ app.use((req, res, next) => {
 });
 
 (async () => {
-  await registerRoutes(app, io);
+  await registerRoutes(app, io, () => getActiveChatUsers());
 
   // Placeholder for admin dashboard route to change chat password
   app.post('/api/admin/change-chat-password', (req: Request, res: Response) => {
