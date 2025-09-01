@@ -117,6 +117,16 @@ const connectionsByIP = new Map();
 const MAX_CONNECTIONS_PER_IP = 5;
 const MAX_TOTAL_CONNECTIONS = 100;
 
+// Export chat users for admin dashboard
+export function getActiveChatUsers() {
+  return Array.from(chatUsers.values()).map(user => ({
+    username: user.username,
+    ip: user.ip,
+    joinedAt: user.joinedAt,
+    socketId: user.socketId || 'unknown'
+  }));
+}
+
 let messageHistory: Array<{
   id: string;
   username: string;
@@ -194,7 +204,8 @@ io.on('connection', (socket) => {
     chatUsers.set(socket.id, { 
       username, 
       ip: clientIP,
-      joinedAt: Date.now() 
+      joinedAt: Date.now(),
+      socketId: socket.id
     });
     socket.join('main-chat');
 

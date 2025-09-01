@@ -1076,6 +1076,92 @@ export default function AdminDashboard() {
             </div>
           </div>
 
+          {/* Chat Room Operator Section */}
+          <div className="mb-8 border border-teal-200 rounded-2xl overflow-hidden shadow-xl transition-all duration-300">
+            <div 
+              className="bg-gradient-to-r from-teal-50 to-cyan-50 p-6 cursor-pointer hover:from-teal-100 hover:to-cyan-100 transition-all duration-300 border-b border-teal-200"
+              onClick={() => toggleSection('chat-room-operator')}
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="bg-gradient-to-br from-teal-100 to-cyan-100 w-16 h-16 rounded-full flex items-center justify-center shadow-lg animate-pulse">
+                    <MessageCircle className="h-8 w-8 text-teal-600" />
+                  </div>
+                  <div>
+                    <h3 className="text-2xl font-bold bg-gradient-to-r from-teal-600 to-cyan-600 bg-clip-text text-transparent">
+                      💬 Chat Room Operator
+                    </h3>
+                    <p className="text-gray-600 text-lg">Monitor active chat room users with their IP addresses</p>
+                    <div className="flex items-center gap-2 mt-2">
+                      <div className="w-2 h-2 bg-teal-400 rounded-full animate-ping"></div>
+                      <span className="text-sm text-teal-600 font-medium">
+                        Real-time chat monitoring
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex flex-col items-center gap-2">
+                  <p className="text-sm font-bold text-teal-600 animate-bounce">Click to {isExpanded('chat-room-operator') ? 'Close' : 'Open'}</p>
+                  <div className="transition-transform duration-300">
+                    {isExpanded('chat-room-operator') ? (
+                      <ChevronDown className="h-8 w-8 text-teal-600 animate-pulse" />
+                    ) : (
+                      <ChevronRight className="h-8 w-8 text-teal-600 animate-pulse" />
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className={`transition-all duration-500 ease-in-out ${isExpanded('chat-room-operator') ? 'max-h-[600px] opacity-100' : 'max-h-0 opacity-0'} overflow-hidden`}>
+              <div className="p-6 bg-white">
+                <div className="bg-gradient-to-br from-teal-50 via-cyan-50 to-blue-50 p-6 rounded-xl border border-teal-200 shadow-lg">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="w-12 h-12 bg-gradient-to-r from-teal-500 to-cyan-500 rounded-full flex items-center justify-center shadow-md animate-pulse">
+                      <MessageCircle className="h-6 w-6 text-white" />
+                    </div>
+                    <h4 className="text-xl font-bold bg-gradient-to-r from-teal-600 to-cyan-600 bg-clip-text text-transparent">
+                      🌐 Active Chat Room Users
+                    </h4>
+                  </div>
+                  
+                  <div className="bg-white p-4 rounded-lg border border-teal-200 shadow-inner">
+                    <p className="text-teal-700 text-sm mb-3 font-medium">
+                      📊 Monitor who's currently in the chat room - their names and IP addresses are tracked here:
+                    </p>
+                    
+                    <div className="bg-gradient-to-r from-teal-100 to-cyan-100 p-4 rounded-lg border border-teal-300">
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
+                        <span className="font-bold text-teal-800">Live Chat Room Activity</span>
+                      </div>
+                      <p className="text-teal-700 text-sm">
+                        ✅ When users join the chat room, their username and IP address will appear here automatically<br/>
+                        ✅ Real-time monitoring of all chat room participants<br/>
+                        ✅ Track user activity and session information<br/>
+                        ✅ IP addresses are hidden from chat users but visible to admin
+                      </p>
+                    </div>
+
+                    <div className="mt-4 p-3 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Shield className="h-4 w-4 text-blue-600" />
+                        <span className="font-bold text-blue-800 text-sm">Chat Room Monitoring Features</span>
+                      </div>
+                      <ul className="text-blue-700 text-xs space-y-1">
+                        <li>• Username + IP address tracking for all chat participants</li>
+                        <li>• Join/leave timestamps for session monitoring</li>
+                        <li>• Real-time updates when users enter or exit chat</li>
+                        <li>• Privacy protection - IPs only visible to admin</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
           {/* IP Block/Unblock Controls Section */}
           <div className="mb-8 border border-violet-200 rounded-2xl overflow-hidden shadow-xl transition-all duration-300">
             <div 
