@@ -43,6 +43,10 @@ export default function AdminDashboard() {
   const [announcementMessage, setAnnouncementMessage] = useState("");
   const [isLoadingAnnouncement, setIsLoadingAnnouncement] = useState(false);
 
+  // IP blocking states
+  const [trackedIPs, setTrackedIPs] = useState<string[]>([]);
+  const [isLoadingIPs, setIsLoadingIPs] = useState(false);
+
   // Load initial website status and announcements
   useEffect(() => {
     const loadWebsiteStatus = async () => {
@@ -68,9 +72,25 @@ export default function AdminDashboard() {
         console.error('Failed to load announcement:', error);
       }
     };
-    
+
+    const loadTrackedIPs = async () => {
+      setIsLoadingIPs(true);
+      try {
+        const response = await fetch('/api/admin/tracked-ips');
+        if (response.ok) {
+          const data = await response.json();
+          setTrackedIPs(data.trackedIPs);
+        }
+      } catch (error) {
+        console.error('Failed to load tracked IPs:', error);
+      } finally {
+        setIsLoadingIPs(false);
+      }
+    };
+
     loadWebsiteStatus();
     loadCurrentAnnouncement();
+    loadTrackedIPs();
   }, []);
 
   // Toggle section expansion
@@ -349,6 +369,89 @@ export default function AdminDashboard() {
     setIsLoadingAnnouncement(false);
   };
 
+  // IP blocking handlers
+  const handleBlockIP = async (ip: string) => {
+    setIsLoadingIPs(true);
+    try {
+      const response = await fetch('/api/admin/block-ip', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ ip }),
+      });
+
+      if (response.ok) {
+        toast({
+          title: "IP Blocked",
+          description: `IP address ${ip} has been blocked successfully!`,
+          className: "bg-gradient-to-r from-red-50 to-rose-50 border-red-200",
+        });
+        // Reload tracked IPs
+        const ipResponse = await fetch('/api/admin/tracked-ips');
+        if (ipResponse.ok) {
+          const data = await ipResponse.json();
+          setTrackedIPs(data.trackedIPs);
+        }
+      } else {
+        const error = await response.json();
+        toast({
+          title: "Error",
+          description: error.message || "Failed to block IP address.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Network error. Please try again.",
+        variant: "destructive",
+      });
+    }
+    setIsLoadingIPs(false);
+  };
+
+  const handleUnblockIP = async (ip: string) => {
+    setIsLoadingIPs(true);
+    try {
+      const response = await fetch('/api/admin/unblock-ip', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ ip }),
+      });
+
+      if (response.ok) {
+        toast({
+          title: "IP Unblocked",
+          description: `IP address ${ip} has been unblocked successfully!`,
+          className: "bg-gradient-to-r from-green-50 to-emerald-50 border-green-200",
+        });
+        // Reload tracked IPs
+        const ipResponse = await fetch('/api/admin/tracked-ips');
+        if (ipResponse.ok) {
+          const data = await ipResponse.json();
+          setTrackedIPs(data.trackedIPs);
+        }
+      } else {
+        const error = await response.json();
+        toast({
+          title: "Error",
+          description: error.message || "Failed to unblock IP address.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Network error. Please try again.",
+        variant: "destructive",
+      });
+    }
+    setIsLoadingIPs(false);
+  };
+
   // Component for rendering collapsible password sections
   const CollapsiblePasswordSection = ({
     sectionId,
@@ -376,7 +479,7 @@ export default function AdminDashboard() {
     colorScheme: string;
   }) => {
     const expanded = isExpanded(sectionId);
-    
+
     return (
       <div className={`border border-${colorScheme}-200 rounded-xl mb-4 overflow-hidden transition-all duration-300`}>
         {/* Header - Always visible */}
@@ -519,7 +622,7 @@ export default function AdminDashboard() {
                     </div>
                   </div>
                 </div>
-                
+
                 <div className="flex flex-col items-center gap-2">
                   <div className="text-center">
                     <p className="text-sm font-bold text-orange-600 animate-bounce">Click to {isExpanded('announcement') ? 'Close' : 'Open'}</p>
@@ -659,7 +762,7 @@ export default function AdminDashboard() {
                   <p className="text-gray-600">Turn the website on or off for all users</p>
                 </div>
               </div>
-              
+
               <div className="flex flex-col items-center gap-3">
                 <div className={`px-4 py-2 rounded-full text-sm font-bold ${
                   isWebsiteOnline 
@@ -668,7 +771,7 @@ export default function AdminDashboard() {
                 }`}>
                   Status: {isWebsiteOnline ? 'ONLINE' : 'OFFLINE'}
                 </div>
-                
+
                 <Button
                   onClick={handleWebsiteToggle}
                   disabled={isLoadingWebsiteToggle}
@@ -691,11 +794,59 @@ export default function AdminDashboard() {
                 </Button>
               </div>
             </div>
-            
+
             <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
               <p className="text-yellow-700 text-sm">
                 <strong>Note:</strong> When the website is turned off, all users will see a "No Signal" page instead of the main content.
               </p>
+            </div>
+          </div>
+
+          {/* IP Address Management Section */}
+          <div className="mb-8 p-6 bg-gradient-to-r from-blue-50 to-cyan-50 rounded-xl border border-blue-200 shadow-lg">
+            <div className="flex items-center gap-4 mb-6">
+              <div className="bg-gradient-to-br from-blue-100 to-cyan-100 w-12 h-12 rounded-full flex items-center justify-center shadow-md">
+                <Lock className="h-6 w-6 text-blue-600" />
+              </div>
+              <div>
+                <h3 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
+                  IP Address Management
+                </h3>
+                <p className="text-gray-600 text-lg">Monitor and manage access by IP address</p>
+              </div>
+            </div>
+
+            <div className="p-4 bg-white rounded-lg border border-blue-100 shadow-sm">
+              <h4 className="text-lg font-semibold text-gray-800 mb-4">Tracked IP Addresses</h4>
+              {isLoadingIPs ? (
+                <p className="text-gray-500">Loading IPs...</p>
+              ) : trackedIPs.length > 0 ? (
+                <ul className="space-y-3 max-h-64 overflow-y-auto pr-3">
+                  {trackedIPs.map((ip) => (
+                    <li key={ip} className="flex items-center justify-between p-3 bg-blue-50 border border-blue-100 rounded-md shadow-xs">
+                      <span className="font-medium text-blue-700">{ip}</span>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          onClick={() => handleUnblockIP(ip)}
+                          className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white shadow-md text-sm px-3 py-1"
+                          size="sm"
+                        >
+                          Unblock
+                        </Button>
+                        <Button
+                          onClick={() => handleBlockIP(ip)}
+                          className="bg-gradient-to-r from-red-500 to-rose-500 hover:from-red-600 hover:to-rose-600 text-white shadow-md text-sm px-3 py-1"
+                          size="sm"
+                        >
+                          Block
+                        </Button>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-gray-500">No IP addresses have accessed the system yet.</p>
+              )}
             </div>
           </div>
 

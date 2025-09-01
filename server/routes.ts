@@ -55,6 +55,22 @@ let currentAnnouncement: {
   createdAt: string;
 } | null = null;
 
+// IP tracking and blocking system
+interface IPInfo {
+  ip: string;
+  userName?: string;
+  firstVisit: string;
+  lastVisit: string;
+  visitCount: number;
+  isBlocked: boolean;
+  blockedAt?: string;
+  userAgent: string;
+  country?: string;
+}
+
+let trackedIPs = new Map<string, IPInfo>();
+let blockedIPs = new Set<string>();
+
 // Helper function for input validation
 function validateInput(input: string, maxLength: number): boolean {
   // Basic validation: check for empty string and length
@@ -72,9 +88,152 @@ export function getChatPassword(): string {
 
 export async function registerRoutes(app: Express, io?: SocketIOServer): Promise<void> {
 
+  // IP tracking middleware
+  app.use((req, res, next) => {
+    const clientIP = req.ip || req.connection.remoteAddress || req.headers['x-forwarded-for'] as string || 'unknown';
+    const userAgent = req.headers['user-agent'] || 'unknown';
+    
+    // Skip tracking for API requests to avoid spam
+    if (!req.path.startsWith('/api/')) {
+      const now = new Date().toISOString();
+      
+      if (trackedIPs.has(clientIP)) {
+        const ipInfo = trackedIPs.get(clientIP)!;
+        ipInfo.lastVisit = now;
+        ipInfo.visitCount += 1;
+        ipInfo.userAgent = userAgent;
+      } else {
+        trackedIPs.set(clientIP, {
+          ip: clientIP,
+          firstVisit: now,
+          lastVisit: now,
+          visitCount: 1,
+          isBlocked: false,
+          userAgent,
+        });
+      }
+    }
+    
+    next();
+  });
+
+  // Check if IP is blocked before proceeding
+  app.use((req, res, next) => {
+    const clientIP = req.ip || req.connection.remoteAddress || req.headers['x-forwarded-for'] as string || 'unknown';
+    
+    if (blockedIPs.has(clientIP)) {
+      return res.status(403).json({ 
+        message: "Your IP address has been blocked by the administrator.",
+        blocked: true,
+        ip: clientIP
+      });
+    }
+    
+    next();
+  });
+
   // Website status endpoint (accessible to all)
   app.get("/api/website/status", (req, res) => {
     res.json({ isOnline: isWebsiteOnline });
+  });
+
+  // User name registration endpoint
+  app.post("/api/register-user", (req, res) => {
+    try {
+      const { userName } = req.body;
+      const clientIP = req.ip || req.connection.remoteAddress || req.headers['x-forwarded-for'] as string || 'unknown';
+
+      if (!userName || !validateInput(userName, 50)) {
+        return res.status(400).json({ message: "Invalid user name" });
+      }
+
+      // Update IP info with user name
+      if (trackedIPs.has(clientIP)) {
+        const ipInfo = trackedIPs.get(clientIP)!;
+        ipInfo.userName = userName.trim();
+        trackedIPs.set(clientIP, ipInfo);
+      }
+
+      res.json({ 
+        message: "User name registered successfully",
+        ip: clientIP,
+        userName: userName.trim()
+      });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to register user name" });
+    }
+  });
+
+  // Get all tracked IPs (Admin only)
+  app.get("/api/admin/tracked-ips", (req, res) => {
+    try {
+      const ipsArray = Array.from(trackedIPs.values()).map(ipInfo => ({
+        ...ipInfo,
+        isBlocked: blockedIPs.has(ipInfo.ip)
+      }));
+      
+      res.json({ trackedIPs: ipsArray });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get tracked IPs" });
+    }
+  });
+
+  // Block IP address (Admin only)
+  app.post("/api/admin/block-ip", (req, res) => {
+    try {
+      const { ip } = req.body;
+      
+      if (!ip) {
+        return res.status(400).json({ message: "IP address is required" });
+      }
+
+      blockedIPs.add(ip);
+      
+      // Update tracked IP info
+      if (trackedIPs.has(ip)) {
+        const ipInfo = trackedIPs.get(ip)!;
+        ipInfo.isBlocked = true;
+        ipInfo.blockedAt = new Date().toISOString();
+        trackedIPs.set(ip, ipInfo);
+      }
+
+      res.json({ 
+        message: `IP address ${ip} has been blocked successfully`,
+        ip,
+        blockedAt: new Date().toISOString()
+      });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to block IP address" });
+    }
+  });
+
+  // Unblock IP address (Admin only)
+  app.post("/api/admin/unblock-ip", (req, res) => {
+    try {
+      const { ip } = req.body;
+      
+      if (!ip) {
+        return res.status(400).json({ message: "IP address is required" });
+      }
+
+      blockedIPs.delete(ip);
+      
+      // Update tracked IP info
+      if (trackedIPs.has(ip)) {
+        const ipInfo = trackedIPs.get(ip)!;
+        ipInfo.isBlocked = false;
+        delete ipInfo.blockedAt;
+        trackedIPs.set(ip, ipInfo);
+      }
+
+      res.json({ 
+        message: `IP address ${ip} has been unblocked successfully`,
+        ip,
+        unblockedAt: new Date().toISOString()
+      });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to unblock IP address" });
+    }
   });
 
   // Admin website toggle endpoint

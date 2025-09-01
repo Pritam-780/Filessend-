@@ -60,6 +60,9 @@ app.use(cors({
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: false, limit: '10mb' }));
 
+// Trust proxy for accurate IP detection
+app.set('trust proxy', true);
+
 // Initialize Socket.IO with performance optimizations
 const io = new Server(httpServer, {
   cors: {
