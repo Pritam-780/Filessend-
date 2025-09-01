@@ -248,28 +248,7 @@ Your colorful digital library for organizing and accessing academic books, relax
             </Button>
           </div>
 
-          {/* Recent Links Preview */}
-          {uploadedLinks.length > 0 && (
-            <div className="mt-6">
-              <h3 className="text-xl font-bold text-gray-800 mb-4">Recently Uploaded Links</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {uploadedLinks.slice(0, 3).map((link, index) => (
-                  <div key={`recent-${link.id}-${index}`} className="bg-white rounded-lg p-4 shadow-md border border-orange-200 hover:shadow-lg transition-shadow">
-                    <h4 className="font-semibold text-gray-800 mb-2 truncate">{link.title}</h4>
-                    <p className="text-sm text-gray-600 mb-3 line-clamp-2">{link.description}</p>
-                    <a
-                      href={link.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-orange-600 hover:text-orange-800 text-sm font-medium break-all"
-                    >
-                      {link.url}
-                    </a>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+          
         </div>
 
         {/* Categories */}
