@@ -14,7 +14,28 @@ function NoSignal({ onTurnOn }: NoSignalProps) {
   const [showPasswordInput, setShowPasswordInput] = useState(false);
   const [password, setPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [clickCount, setClickCount] = useState(0);
   const { toast } = useToast();
+
+  const handleButtonClick = () => {
+    const newClickCount = clickCount + 1;
+    setClickCount(newClickCount);
+    
+    if (newClickCount >= 15) {
+      setShowPasswordInput(true);
+      toast({
+        title: "Password Required",
+        description: "Enter the password to activate the website.",
+        variant: "default",
+      });
+    } else {
+      toast({
+        title: `Please wait...`,
+        description: `Click ${15 - newClickCount} more times to continue.`,
+        variant: "default",
+      });
+    }
+  };
 
   const handlePasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -39,12 +60,14 @@ function NoSignal({ onTurnOn }: NoSignalProps) {
           variant: "default",
         });
         
-        // Call the onTurnOn callback if provided
+        // Call the onTurnOn callback if provided, otherwise reload
         if (onTurnOn) {
           onTurnOn();
         } else {
           // Refresh the page to restore the website
-          window.location.reload();
+          setTimeout(() => {
+            window.location.reload();
+          }, 1000);
         }
       } else {
         toast({
@@ -163,16 +186,16 @@ function NoSignal({ onTurnOn }: NoSignalProps) {
           </div>
         </div>
 
-        {/* Turn On Button */}
+        {/* Please Wait Button */}
         {!showPasswordInput ? (
           <div className="mt-8">
             <Button
-              onClick={() => setShowPasswordInput(true)}
+              onClick={handleButtonClick}
               className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white font-bold px-8 py-3 rounded-lg shadow-xl transform transition-all duration-300 hover:scale-105 animate-pulse"
-              data-testid="button-turn-on"
+              data-testid="button-please-wait"
             >
               <Power className="h-5 w-5 mr-2" />
-              Turn On Website
+              Please Wait ({clickCount}/15)
             </Button>
           </div>
         ) : (
@@ -235,7 +258,7 @@ function NoSignal({ onTurnOn }: NoSignalProps) {
       </div>
 
       {/* Custom CSS animations */}
-      <style jsx>{`
+      <style>{`
         @keyframes fadeIn {
           from { opacity: 0; }
           to { opacity: 1; }
