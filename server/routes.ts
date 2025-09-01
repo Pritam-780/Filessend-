@@ -41,6 +41,12 @@ const upload = multer({
 // Initialize system password (will be updated by admin)
 let systemPassword = "Ak47";
 let adminPassword = "@gmail.pritam#";
+let chatPassword = "Ak47";
+
+// Export function to get current chat password
+export function getChatPassword(): string {
+  return chatPassword;
+}
 
 export async function registerRoutes(app: Express, io?: SocketIOServer): Promise<void> {
 
@@ -416,6 +422,42 @@ export async function registerRoutes(app: Express, io?: SocketIOServer): Promise
     } catch (error) {
       console.error('Password change error:', error);
       res.status(500).json({ message: "Failed to change password" });
+    }
+  });
+
+  // Admin chat password management route
+  app.post("/api/admin/change-chat-password", async (req, res) => {
+    try {
+      const { currentPassword, newPassword } = req.body;
+
+      if (!currentPassword || !newPassword) {
+        return res.status(400).json({ message: "Current password and new password are required" });
+      }
+
+      // Verify current chat password
+      if (currentPassword !== chatPassword) {
+        return res.status(403).json({ message: "Current chat password is incorrect" });
+      }
+
+      // Update chat password
+      chatPassword = newPassword;
+
+      // Broadcast chat password change to all connected clients (optional)
+      if (io) {
+        io.emit('chat-password-changed', {
+          message: 'Chat room password has been updated by admin',
+          timestamp: new Date().toISOString()
+        });
+        console.log('Chat password changed by admin');
+      }
+
+      res.json({
+        message: "Chat password changed successfully",
+        changedAt: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error('Chat password change error:', error);
+      res.status(500).json({ message: "Failed to change chat password" });
     }
   });
 

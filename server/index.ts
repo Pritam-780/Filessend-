@@ -49,19 +49,32 @@ let messageHistory: Array<{
   };
 }> = [];
 
+// Placeholder for chat password management. In a real application, this would be stored securely (e.g., in environment variables or a database).
+let currentChatPassword = process.env.CHAT_PASSWORD || "Ak47"; // Default password
+
+function getChatPassword(): string {
+  return currentChatPassword;
+}
+
+// Function to change the chat password (would be called from an admin route)
+function setChatPassword(newPassword: string): void {
+  currentChatPassword = newPassword;
+  log(`Chat password updated to: ${newPassword}`);
+}
+
+
 // Keep only last 500 messages in memory
 const MAX_MESSAGES = 500;
 
 io.on('connection', (socket) => {
   log(`User connected: ${socket.id}`);
 
+  // Chat room management
   socket.on('join-chat', (data) => {
     const { username, password } = data;
 
-    // Import the dynamic password from routes (will need to be handled differently in production)
-    const systemPassword = "Ak47"; // This should reference the same variable as in routes.ts
-
-    if (password !== systemPassword) {
+    // Authenticate with username and chat password
+    if (password !== getChatPassword()) {
       socket.emit('auth-error', 'Invalid password');
       return;
     }
@@ -229,6 +242,17 @@ app.use((req, res, next) => {
 (async () => {
   await registerRoutes(app, io);
 
+  // Placeholder for admin dashboard route to change chat password
+  app.post('/api/admin/change-chat-password', (req: Request, res: Response) => {
+    const { newPassword } = req.body;
+    if (!newPassword) {
+      return res.status(400).json({ message: 'New password is required' });
+    }
+    // In a real app, you'd want to validate the new password and potentially the current admin user.
+    setChatPassword(newPassword);
+    res.status(200).json({ message: 'Chat password updated successfully' });
+  });
+
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";
@@ -246,7 +270,7 @@ app.use((req, res, next) => {
     serveStatic(app);
   }
 
-  // ALWAYS serve the app on the port specified in the environment variable PORT
+  // ALWAYS serve the port specified in the environment variable PORT
   // Other ports are firewalled. Default to 5000 if not specified.
   // this serves both the API and the client.
   // It is the only port that is not firewalled.
