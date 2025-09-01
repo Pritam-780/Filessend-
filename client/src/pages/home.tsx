@@ -36,26 +36,28 @@ export default function Home() {
 
   useEffect(() => {
     setFiles(fetchedFiles);
-    setFilteredFiles(fetchedFiles);
     setIsLoading(false);
   }, [fetchedFiles]);
-
 
   // Set up real-time socket connection
   useEffect(() => {
     const socket: Socket = io();
 
     socket.on('file-uploaded', (newFile) => {
-      // Add new file to cache
+      // Add new file to cache and update local state
       queryClient.setQueryData(['files'], (oldFiles: any[] = []) => {
-        return [{ ...newFile, uploadedAt: new Date(newFile.uploadedAt) }, ...oldFiles];
+        const updatedFiles = [{ ...newFile, uploadedAt: new Date(newFile.uploadedAt) }, ...oldFiles];
+        setFiles(updatedFiles);
+        return updatedFiles;
       });
     });
 
     socket.on('file-deleted', (data) => {
-      // Remove deleted file from cache
+      // Remove deleted file from cache and update local state immediately
       queryClient.setQueryData(['files'], (oldFiles: any[] = []) => {
-        return oldFiles.filter(file => file.id !== data.fileId);
+        const updatedFiles = oldFiles.filter(file => file.id !== data.fileId);
+        setFiles(updatedFiles);
+        return updatedFiles;
       });
     });
 
@@ -69,7 +71,7 @@ export default function Home() {
     refetch(); // Refetch files after a delete operation
   };
 
-  const getFilteredFiles = () => {
+  useEffect(() => {
     let results = files;
 
     if (searchQuery) {
@@ -87,10 +89,6 @@ export default function Home() {
     }
 
     setFilteredFiles(results);
-  };
-
-  useEffect(() => {
-    getFilteredFiles();
   }, [files, searchQuery, categoryFilter, fileTypeFilter]);
 
   const getFileCounts = () => {

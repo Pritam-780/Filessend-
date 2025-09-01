@@ -86,13 +86,14 @@ export default function Category() {
     socket.on('file-deleted', (data) => {
       queryClient.setQueryData(['files', 'category', category], (oldFiles: any[] = []) => {
         const updatedFiles = oldFiles.filter(file => file.id !== data.fileId);
-        setFiles(updatedFiles); // Update local state as well
+        setFiles(updatedFiles); // Update local state immediately
         return updatedFiles;
       });
       queryClient.invalidateQueries({ queryKey: ['files'] });
       toast({
-        title: "File Deleted",
-        description: `A file has been deleted.`,
+        title: "File Deleted", 
+        description: `${data.filename} has been permanently deleted.`,
+        className: "bg-red-50 border-red-200",
       });
     });
 
