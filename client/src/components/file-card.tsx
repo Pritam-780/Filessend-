@@ -129,7 +129,7 @@ export default function FileCard({ file, onPreview, onDelete }: FileCardProps) {
       <DeleteConfirmationModal
         isOpen={showDeleteModal}
         onClose={() => setShowDeleteModal(false)}
-        onConfirm={() => handleDelete("Ak47")}
+        onConfirm={handleDelete}
         fileName={file.originalName}
       />
     </>

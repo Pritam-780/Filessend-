@@ -32,10 +32,6 @@ export default function UploadModal({ isOpen, onClose, category: initialCategory
 
   const uploadMutation = useMutation({
     mutationFn: async () => {
-      if (password !== "Ak47") {
-        throw new Error("Incorrect password");
-      }
-
       // Simulate progress for demo purposes
       const progressInterval = setInterval(() => {
         setUploadProgress(prev => {
@@ -54,6 +50,7 @@ export default function UploadModal({ isOpen, onClose, category: initialCategory
           formData.append('files', file);
         });
         formData.append('category', category);
+        formData.append('password', password);
 
         const response = await fetch('/api/files/upload', {
           method: 'POST',
@@ -61,7 +58,8 @@ export default function UploadModal({ isOpen, onClose, category: initialCategory
         });
 
         if (!response.ok) {
-          throw new Error(`Upload failed: ${response.statusText}`);
+          const errorData = await response.json().catch(() => ({ message: response.statusText }));
+          throw new Error(errorData.message || `Upload failed: ${response.statusText}`);
         }
 
         const result = await response.json();

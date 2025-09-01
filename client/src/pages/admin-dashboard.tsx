@@ -1,44 +1,71 @@
-
 import { useState } from "react";
 import { useLocation } from "wouter";
-import { Lock, Key, Save, ArrowLeft, Shield, MessageCircle } from "lucide-react";
+import { Lock, Key, Save, ArrowLeft, Shield, MessageCircle, Upload, Trash2, Link, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 
 export default function AdminDashboard() {
   const [, setLocation] = useLocation();
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  
-  // Chat password states
-  const [newChatPassword, setNewChatPassword] = useState("");
-  const [confirmChatPassword, setConfirmChatPassword] = useState("");
-  const [isLoadingChat, setIsLoadingChat] = useState(false);
-  
   const { toast } = useToast();
 
-  const handlePasswordChange = async (e: React.FormEvent) => {
+  // Password states for each operation
+  const [fileUploadPassword, setFileUploadPassword] = useState("");
+  const [confirmFileUploadPassword, setConfirmFileUploadPassword] = useState("");
+  const [isLoadingFileUpload, setIsLoadingFileUpload] = useState(false);
+
+  const [fileDeletePassword, setFileDeletePassword] = useState("");
+  const [confirmFileDeletePassword, setConfirmFileDeletePassword] = useState("");
+  const [isLoadingFileDelete, setIsLoadingFileDelete] = useState(false);
+
+  const [linkUploadPassword, setLinkUploadPassword] = useState("");
+  const [confirmLinkUploadPassword, setConfirmLinkUploadPassword] = useState("");
+  const [isLoadingLinkUpload, setIsLoadingLinkUpload] = useState(false);
+
+  const [linkDeletePassword, setLinkDeletePassword] = useState("");
+  const [confirmLinkDeletePassword, setConfirmLinkDeletePassword] = useState("");
+  const [isLoadingLinkDelete, setIsLoadingLinkDelete] = useState(false);
+
+  const [chatPassword, setChatPassword] = useState("");
+  const [confirmChatPassword, setConfirmChatPassword] = useState("");
+  const [isLoadingChat, setIsLoadingChat] = useState(false);
+
+  // Generic password change handler
+  const handlePasswordChange = async (
+    e: React.FormEvent,
+    endpoint: string,
+    newPassword: string,
+    confirmPassword: string,
+    setIsLoading: (loading: boolean) => void,
+    setNewPassword: (password: string) => void,
+    setConfirmPassword: (password: string) => void,
+    operationName: string
+  ) => {
     e.preventDefault();
     setIsLoading(true);
 
-    // Password verification will be handled by the API endpoint
-
-    // Check if new passwords match
     if (newPassword !== confirmPassword) {
       toast({
         title: "Error",
-        description: "New passwords do not match.",
+        description: "Passwords do not match.",
         variant: "destructive",
       });
       setIsLoading(false);
       return;
     }
 
+    if (newPassword.length < 3) {
+      toast({
+        title: "Error",
+        description: "Password must be at least 3 characters long.",
+        variant: "destructive",
+      });
+      setIsLoading(false);
+      return;
+    }
 
     try {
-      const response = await fetch('/api/admin/change-password', {
+      const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -51,7 +78,7 @@ export default function AdminDashboard() {
       if (response.ok) {
         toast({
           title: "Password Changed",
-          description: "All system passwords have been updated successfully!",
+          description: `${operationName} password has been updated successfully!`,
           className: "bg-gradient-to-r from-green-50 to-emerald-50 border-green-200",
         });
         setNewPassword("");
@@ -60,7 +87,7 @@ export default function AdminDashboard() {
         const error = await response.json();
         toast({
           title: "Error",
-          description: error.message || "Failed to change password.",
+          description: error.message || `Failed to change ${operationName.toLowerCase()} password.`,
           variant: "destructive",
         });
       }
@@ -75,69 +102,167 @@ export default function AdminDashboard() {
     setIsLoading(false);
   };
 
-  const handleChatPasswordChange = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoadingChat(true);
+  // Individual handlers for each password type
+  const handleFileUploadPasswordChange = (e: React.FormEvent) =>
+    handlePasswordChange(
+      e,
+      '/api/admin/change-file-upload-password',
+      fileUploadPassword,
+      confirmFileUploadPassword,
+      setIsLoadingFileUpload,
+      setFileUploadPassword,
+      setConfirmFileUploadPassword,
+      'File Upload'
+    );
 
-    // Check if new passwords match
-    if (newChatPassword !== confirmChatPassword) {
-      toast({
-        title: "Error",
-        description: "New chat passwords do not match.",
-        variant: "destructive",
-      });
-      setIsLoadingChat(false);
-      return;
-    }
+  const handleFileDeletePasswordChange = (e: React.FormEvent) =>
+    handlePasswordChange(
+      e,
+      '/api/admin/change-file-delete-password',
+      fileDeletePassword,
+      confirmFileDeletePassword,
+      setIsLoadingFileDelete,
+      setFileDeletePassword,
+      setConfirmFileDeletePassword,
+      'File Delete'
+    );
 
+  const handleLinkUploadPasswordChange = (e: React.FormEvent) =>
+    handlePasswordChange(
+      e,
+      '/api/admin/change-link-upload-password',
+      linkUploadPassword,
+      confirmLinkUploadPassword,
+      setIsLoadingLinkUpload,
+      setLinkUploadPassword,
+      setConfirmLinkUploadPassword,
+      'Link Upload'
+    );
 
-    try {
-      const response = await fetch('/api/admin/change-chat-password', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          newPassword: newChatPassword,
-        }),
-      });
+  const handleLinkDeletePasswordChange = (e: React.FormEvent) =>
+    handlePasswordChange(
+      e,
+      '/api/admin/change-link-delete-password',
+      linkDeletePassword,
+      confirmLinkDeletePassword,
+      setIsLoadingLinkDelete,
+      setLinkDeletePassword,
+      setConfirmLinkDeletePassword,
+      'Link Delete'
+    );
 
-      if (response.ok) {
-        toast({
-          title: "Chat Password Changed",
-          description: "Chat room login password has been updated successfully!",
-          className: "bg-gradient-to-r from-green-50 to-emerald-50 border-green-200",
-        });
-        setNewChatPassword("");
-        setConfirmChatPassword("");
-      } else {
-        const error = await response.json();
-        toast({
-          title: "Error",
-          description: error.message || "Failed to change chat password.",
-          variant: "destructive",
-        });
-      }
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Network error. Please try again.",
-        variant: "destructive",
-      });
-    }
+  const handleChatPasswordChange = (e: React.FormEvent) =>
+    handlePasswordChange(
+      e,
+      '/api/admin/change-chat-password',
+      chatPassword,
+      confirmChatPassword,
+      setIsLoadingChat,
+      setChatPassword,
+      setConfirmChatPassword,
+      'Chat Room'
+    );
 
-    setIsLoadingChat(false);
-  };
+  // Component for rendering password sections
+  const PasswordSection = ({
+    title,
+    description,
+    icon: Icon,
+    newPassword,
+    setNewPassword,
+    confirmPassword,
+    setConfirmPassword,
+    onSubmit,
+    isLoading,
+    colorScheme,
+  }: {
+    title: string;
+    description: string;
+    icon: any;
+    newPassword: string;
+    setNewPassword: (password: string) => void;
+    confirmPassword: string;
+    setConfirmPassword: (password: string) => void;
+    onSubmit: (e: React.FormEvent) => void;
+    isLoading: boolean;
+    colorScheme: string;
+  }) => (
+    <div className={`bg-gradient-to-r ${colorScheme}-50 rounded-xl p-6 border ${colorScheme}-200 mb-6`}>
+      <h2 className="text-xl font-bold text-gray-800 mb-3 flex items-center gap-2">
+        <Icon className={`h-5 w-5 text-${colorScheme}-600`} />
+        {title}
+      </h2>
+      <p className="text-gray-600 mb-4 text-sm">
+        {description}
+      </p>
+
+      <form onSubmit={onSubmit} className="space-y-4">
+        <div className="space-y-2">
+          <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
+            <Key className="h-4 w-4" />
+            New Password
+          </label>
+          <Input
+            type="password"
+            value={newPassword}
+            onChange={(e) => setNewPassword(e.target.value)}
+            placeholder="Enter new password"
+            className={`border-gray-300 focus:border-${colorScheme}-500 focus:ring-${colorScheme}-500`}
+            disabled={isLoading}
+            required
+            data-testid={`input-${title.toLowerCase().replace(/\s+/g, '-')}-password`}
+          />
+        </div>
+
+        <div className="space-y-2">
+          <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
+            <Key className="h-4 w-4" />
+            Confirm Password
+          </label>
+          <Input
+            type="password"
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            placeholder="Confirm new password"
+            className={`border-gray-300 focus:border-${colorScheme}-500 focus:ring-${colorScheme}-500`}
+            disabled={isLoading}
+            required
+            data-testid={`input-confirm-${title.toLowerCase().replace(/\s+/g, '-')}-password`}
+          />
+        </div>
+
+        <Button
+          type="submit"
+          className={`w-full bg-gradient-to-r from-${colorScheme}-600 to-${colorScheme}-700 text-white hover:from-${colorScheme}-700 hover:to-${colorScheme}-800 shadow-lg font-medium py-2`}
+          disabled={isLoading || !newPassword || !confirmPassword}
+          data-testid={`button-change-${title.toLowerCase().replace(/\s+/g, '-')}-password`}
+        >
+          {isLoading ? (
+            <div className="flex items-center gap-2">
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+              Updating...
+            </div>
+          ) : (
+            <div className="flex items-center gap-2">
+              <Save className="h-4 w-4" />
+              Change Password
+            </div>
+          )}
+        </Button>
+      </form>
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 p-4">
-      <div className="max-w-2xl mx-auto pt-8">
+      <div className="max-w-4xl mx-auto pt-8">
         {/* Header */}
         <div className="flex items-center gap-4 mb-8">
           <Button
             onClick={() => setLocation("/")}
             variant="outline"
             className="flex items-center gap-2"
+            data-testid="button-back-home"
           >
             <ArrowLeft className="h-4 w-4" />
             Back to Home
@@ -153,139 +278,93 @@ export default function AdminDashboard() {
             <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">
               Admin Dashboard
             </h1>
-            <p className="text-gray-600 mt-2">Manage system passwords and security settings</p>
+            <p className="text-gray-600 mt-2">Manage individual passwords for different system operations</p>
           </div>
 
-          {/* Change System Password Section */}
-          <div className="bg-gradient-to-r from-purple-50 to-indigo-50 rounded-xl p-6 border border-purple-200 mb-6">
-            <h2 className="text-2xl font-bold text-gray-800 mb-4 flex items-center gap-2">
-              <Key className="h-6 w-6 text-purple-600" />
-              Change System Password
-            </h2>
-            <p className="text-gray-600 mb-6">
-              Update the system password used for file uploads, deletions, and link management.
-            </p>
+          {/* Grid Layout for Password Sections */}
+          <div className="grid md:grid-cols-2 gap-6">
+            {/* File Upload Password */}
+            <PasswordSection
+              title="File Upload Password"
+              description="Password required for uploading new files to the system."
+              icon={Upload}
+              newPassword={fileUploadPassword}
+              setNewPassword={setFileUploadPassword}
+              confirmPassword={confirmFileUploadPassword}
+              setConfirmPassword={setConfirmFileUploadPassword}
+              onSubmit={handleFileUploadPasswordChange}
+              isLoading={isLoadingFileUpload}
+              colorScheme="blue"
+            />
 
-            <form onSubmit={handlePasswordChange} className="space-y-6">
+            {/* File Delete Password */}
+            <PasswordSection
+              title="File Delete Password"
+              description="Password required for deleting files from the system."
+              icon={Trash2}
+              newPassword={fileDeletePassword}
+              setNewPassword={setFileDeletePassword}
+              confirmPassword={confirmFileDeletePassword}
+              setConfirmPassword={setConfirmFileDeletePassword}
+              onSubmit={handleFileDeletePasswordChange}
+              isLoading={isLoadingFileDelete}
+              colorScheme="red"
+            />
 
-              <div className="space-y-2">
-                <label htmlFor="newPassword" className="text-sm font-medium text-gray-700 flex items-center gap-2">
-                  <Key className="h-4 w-4" />
-                  Enter your changed password
-                </label>
-                <Input
-                  id="newPassword"
-                  type="password"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  placeholder="Enter new password"
-                  className="border-gray-300 focus:border-purple-500 focus:ring-purple-500"
-                  disabled={isLoading}
-                  required
-                />
-              </div>
+            {/* Link Upload Password */}
+            <PasswordSection
+              title="Link Upload Password"
+              description="Password required for adding new links to the system."
+              icon={Link}
+              newPassword={linkUploadPassword}
+              setNewPassword={setLinkUploadPassword}
+              confirmPassword={confirmLinkUploadPassword}
+              setConfirmPassword={setConfirmLinkUploadPassword}
+              onSubmit={handleLinkUploadPasswordChange}
+              isLoading={isLoadingLinkUpload}
+              colorScheme="green"
+            />
 
-              <div className="space-y-2">
-                <label htmlFor="confirmPassword" className="text-sm font-medium text-gray-700 flex items-center gap-2">
-                  <Key className="h-4 w-4" />
-                  Confirm new password
-                </label>
-                <Input
-                  id="confirmPassword"
-                  type="password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  placeholder="Confirm new password"
-                  className="border-gray-300 focus:border-purple-500 focus:ring-purple-500"
-                  disabled={isLoading}
-                  required
-                />
-              </div>
+            {/* Link Delete Password */}
+            <PasswordSection
+              title="Link Delete Password"
+              description="Password required for removing links from the system."
+              icon={FileText}
+              newPassword={linkDeletePassword}
+              setNewPassword={setLinkDeletePassword}
+              confirmPassword={confirmLinkDeletePassword}
+              setConfirmPassword={setConfirmLinkDeletePassword}
+              onSubmit={handleLinkDeletePasswordChange}
+              isLoading={isLoadingLinkDelete}
+              colorScheme="orange"
+            />
 
-              <Button
-                type="submit"
-                className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 text-white hover:from-purple-700 hover:to-indigo-700 shadow-lg font-medium py-3"
-                disabled={isLoading || !newPassword || !confirmPassword}
-              >
-                {isLoading ? (
-                  <div className="flex items-center gap-2">
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                    Updating Password...
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-2">
-                    <Save className="h-4 w-4" />
-                    Change Password
-                  </div>
-                )}
-              </Button>
-            </form>
+            {/* Chat Room Password */}
+            <div className="md:col-span-2">
+              <PasswordSection
+                title="Chat Room Password"
+                description="Password required for users to join the chat room."
+                icon={MessageCircle}
+                newPassword={chatPassword}
+                setNewPassword={setChatPassword}
+                confirmPassword={confirmChatPassword}
+                setConfirmPassword={setConfirmChatPassword}
+                onSubmit={handleChatPasswordChange}
+                isLoading={isLoadingChat}
+                colorScheme="purple"
+              />
+            </div>
           </div>
 
-          {/* Change Chat Room Password Section */}
-          <div className="bg-gradient-to-r from-emerald-50 to-teal-50 rounded-xl p-6 border border-emerald-200">
-            <h2 className="text-2xl font-bold text-gray-800 mb-4 flex items-center gap-2">
-              <MessageCircle className="h-6 w-6 text-emerald-600" />
-              Change Chat Room Login Password
-            </h2>
-            <p className="text-gray-600 mb-6">
-              Update the password required for users to join the chat room.
+          {/* Security Notice */}
+          <div className="mt-8 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+            <div className="flex items-center gap-2 mb-2">
+              <Lock className="h-5 w-5 text-yellow-600" />
+              <h3 className="font-semibold text-yellow-800">Security Notice</h3>
+            </div>
+            <p className="text-yellow-700 text-sm">
+              Each operation now has its own password for enhanced security. Users will need to enter the correct password for each specific action they want to perform.
             </p>
-
-            <form onSubmit={handleChatPasswordChange} className="space-y-6">
-
-              <div className="space-y-2">
-                <label htmlFor="newChatPassword" className="text-sm font-medium text-gray-700 flex items-center gap-2">
-                  <Key className="h-4 w-4" />
-                  Enter new chat room password
-                </label>
-                <Input
-                  id="newChatPassword"
-                  type="password"
-                  value={newChatPassword}
-                  onChange={(e) => setNewChatPassword(e.target.value)}
-                  placeholder="Enter new chat password"
-                  className="border-gray-300 focus:border-emerald-500 focus:ring-emerald-500"
-                  disabled={isLoadingChat}
-                  required
-                />
-              </div>
-
-              <div className="space-y-2">
-                <label htmlFor="confirmChatPassword" className="text-sm font-medium text-gray-700 flex items-center gap-2">
-                  <Key className="h-4 w-4" />
-                  Confirm new chat password
-                </label>
-                <Input
-                  id="confirmChatPassword"
-                  type="password"
-                  value={confirmChatPassword}
-                  onChange={(e) => setConfirmChatPassword(e.target.value)}
-                  placeholder="Confirm new chat password"
-                  className="border-gray-300 focus:border-emerald-500 focus:ring-emerald-500"
-                  disabled={isLoadingChat}
-                  required
-                />
-              </div>
-
-              <Button
-                type="submit"
-                className="w-full bg-gradient-to-r from-emerald-600 to-teal-600 text-white hover:from-emerald-700 hover:to-teal-700 shadow-lg font-medium py-3"
-                disabled={isLoadingChat || !newChatPassword || !confirmChatPassword}
-              >
-                {isLoadingChat ? (
-                  <div className="flex items-center gap-2">
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                    Updating Chat Password...
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-2">
-                    <Save className="h-4 w-4" />
-                    Change Chat Password
-                  </div>
-                )}
-              </Button>
-            </form>
           </div>
         </div>
       </div>

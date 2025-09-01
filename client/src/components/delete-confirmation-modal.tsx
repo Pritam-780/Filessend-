@@ -9,7 +9,7 @@ import { toast } from "@/hooks/use-toast";
 interface DeleteConfirmationModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onConfirm: () => void;
+  onConfirm: (password: string) => void;
   fileName: string;
 }
 
@@ -26,10 +26,10 @@ export default function DeleteConfirmationModal({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (password !== "Ak47") {
+    if (!password) {
       toast({
-        title: "Access Denied",
-        description: "Incorrect password. Please try again.",
+        title: "Password Required",
+        description: "Please enter the file delete password.",
         variant: "destructive",
       });
       return;
@@ -37,19 +37,16 @@ export default function DeleteConfirmationModal({
 
     setIsDeleting(true);
     
-    // Add a small delay for better UX
-    setTimeout(() => {
-      onConfirm();
+    try {
+      // Pass password to parent component for verification
+      await onConfirm(password);
       setIsDeleting(false);
       setPassword("");
       onClose();
-      
-      toast({
-        title: "File Deleted",
-        description: `"${fileName}" has been successfully deleted.`,
-        className: "bg-gradient-to-r from-green-50 to-emerald-50 border-green-200",
-      });
-    }, 500);
+    } catch (error) {
+      setIsDeleting(false);
+      // Error handling is done in parent component
+    }
   };
 
   const handleClose = () => {
@@ -88,7 +85,7 @@ export default function DeleteConfirmationModal({
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Enter password"
+                placeholder="Enter file delete password"
                 className="h-8 text-sm border-red-300 focus:border-red-500 focus:ring-red-500"
                 disabled={isDeleting}
                 required

@@ -38,10 +38,13 @@ const upload = multer({
   }
 });
 
-// Initialize system password (will be updated by admin)
-let systemPassword = "Ak47";
-let adminPassword = "@gmail.pritam#";
+// Initialize separate passwords for different operations
+let fileUploadPassword = "Ak47";
+let fileDeletePassword = "Ak47";
+let linkUploadPassword = "Ak47";
+let linkDeletePassword = "Ak47";
 let chatPassword = "Ak47";
+let adminPassword = "@gmail.pritam#";
 
 // Export function to get current chat password
 export function getChatPassword(): string {
@@ -90,8 +93,13 @@ export async function registerRoutes(app: Express, io?: SocketIOServer): Promise
   // Upload files
   app.post("/api/files/upload", upload.array('files'), async (req, res) => {
     try {
-      const { category } = req.body;
+      const { category, password } = req.body;
       const files = req.files as Express.Multer.File[];
+
+      // Verify password for file upload
+      if (!password || password !== fileUploadPassword) {
+        return res.status(403).json({ message: "Access denied. Invalid password required for file upload." });
+      }
 
       if (!files || files.length === 0) {
         return res.status(400).json({ message: "No files uploaded" });
@@ -207,7 +215,7 @@ export async function registerRoutes(app: Express, io?: SocketIOServer): Promise
       console.log('File deletion request:', { id, hasPassword: !!password });
 
       // Verify password for deletion
-      if (!password || password !== systemPassword) {
+      if (!password || password !== fileDeletePassword) {
         console.log('File deletion denied - invalid password');
         return res.status(403).json({ message: "Access denied. Invalid password required for deletion." });
       }
@@ -286,7 +294,7 @@ export async function registerRoutes(app: Express, io?: SocketIOServer): Promise
     try {
       const { title, description, url, password } = req.body;
 
-      if (password !== systemPassword) {
+      if (password !== linkUploadPassword) {
         return res.status(403).json({ message: "Access denied. Invalid password." });
       }
 
@@ -330,7 +338,7 @@ export async function registerRoutes(app: Express, io?: SocketIOServer): Promise
       const { id } = req.params;
       const { password } = req.body;
 
-      if (!password || password !== systemPassword) {
+      if (!password || password !== linkDeletePassword) {
         return res.status(403).json({ message: "Access denied. Invalid password required for deletion." });
       }
 
@@ -397,8 +405,11 @@ export async function registerRoutes(app: Express, io?: SocketIOServer): Promise
         return res.status(400).json({ message: "New password is required" });
       }
 
-      // Update both system and admin passwords
-      systemPassword = newPassword;
+      // This endpoint is deprecated - use specific password endpoints instead
+      fileUploadPassword = newPassword;
+      fileDeletePassword = newPassword;
+      linkUploadPassword = newPassword;
+      linkDeletePassword = newPassword;
       adminPassword = newPassword;
 
       // Broadcast password change to all connected clients (optional)
@@ -448,6 +459,59 @@ export async function registerRoutes(app: Express, io?: SocketIOServer): Promise
     } catch (error) {
       console.error('Chat password change error:', error);
       res.status(500).json({ message: "Failed to change chat password" });
+
+  // Individual password management routes
+  app.post("/api/admin/change-file-upload-password", async (req, res) => {
+    try {
+      const { newPassword } = req.body;
+      if (!newPassword) {
+        return res.status(400).json({ message: "New password is required" });
+      }
+      fileUploadPassword = newPassword;
+      res.json({ message: "File upload password changed successfully", changedAt: new Date().toISOString() });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to change file upload password" });
+    }
+  });
+
+  app.post("/api/admin/change-file-delete-password", async (req, res) => {
+    try {
+      const { newPassword } = req.body;
+      if (!newPassword) {
+        return res.status(400).json({ message: "New password is required" });
+      }
+      fileDeletePassword = newPassword;
+      res.json({ message: "File delete password changed successfully", changedAt: new Date().toISOString() });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to change file delete password" });
+    }
+  });
+
+  app.post("/api/admin/change-link-upload-password", async (req, res) => {
+    try {
+      const { newPassword } = req.body;
+      if (!newPassword) {
+        return res.status(400).json({ message: "New password is required" });
+      }
+      linkUploadPassword = newPassword;
+      res.json({ message: "Link upload password changed successfully", changedAt: new Date().toISOString() });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to change link upload password" });
+    }
+  });
+
+  app.post("/api/admin/change-link-delete-password", async (req, res) => {
+    try {
+      const { newPassword } = req.body;
+      if (!newPassword) {
+        return res.status(400).json({ message: "New password is required" });
+      }
+      linkDeletePassword = newPassword;
+      res.json({ message: "Link delete password changed successfully", changedAt: new Date().toISOString() });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to change link delete password" });
+    }
+  });
     }
   });
 
