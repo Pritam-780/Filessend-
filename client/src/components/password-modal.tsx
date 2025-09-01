@@ -92,8 +92,6 @@ export default function PasswordModal({ isOpen, onClose, onPasswordSubmit }: Pas
                   className="h-8 text-sm border-red-300 focus:border-red-500 focus:ring-red-500"
                   disabled={isSubmitting}
                   required
-                  autoComplete="new-password"
-                  spellCheck={false}
                 />
               </div>
               

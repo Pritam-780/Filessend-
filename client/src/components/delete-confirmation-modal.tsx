@@ -89,8 +89,6 @@ export default function DeleteConfirmationModal({
                 className="h-8 text-sm border-red-300 focus:border-red-500 focus:ring-red-500"
                 disabled={isDeleting}
                 required
-                autoComplete="new-password"
-                spellCheck={false}
               />
             </div>
             
