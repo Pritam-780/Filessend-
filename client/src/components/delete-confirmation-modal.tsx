@@ -4,7 +4,7 @@ import { Trash2, Lock, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "@/hooks/use-toast";
 
 interface DeleteConfirmationModalProps {
   isOpen: boolean;
@@ -21,7 +21,7 @@ export default function DeleteConfirmationModal({
 }: DeleteConfirmationModalProps) {
   const [password, setPassword] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
-  const { toast } = useToast();
+  
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { FileData, fileStorage } from "@/lib/fileStorage";
 import { useState } from "react";
 import DeleteConfirmationModal from "./delete-confirmation-modal";
-import { toast } from "@/components/ui/use-toast";
+import { toast } from "@/hooks/use-toast";
 
 
 interface FileCardProps {
