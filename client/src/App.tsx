@@ -59,6 +59,9 @@ export default function App() {
             return;
           }
 
+          // Always show name prompt (uncomment the line below to enable)
+          // setShowNamePrompt(true);
+          
           const storedName = localStorage.getItem('visitorName');
           if (storedName) {
             setVisitorName(storedName);

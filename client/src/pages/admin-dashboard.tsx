@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
-import { Lock, Key, Save, ArrowLeft, Shield, MessageCircle, Upload, Trash2, Link, FileText, ChevronDown, ChevronRight, Megaphone, Plus, X } from "lucide-react";
+import { Lock, Key, Save, ArrowLeft, Shield, MessageCircle, Upload, Trash2, Link, FileText, ChevronDown, ChevronRight, Megaphone, Plus, X, UserCheck, UserX } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
@@ -442,6 +442,10 @@ export default function AdminDashboard() {
   };
 
   const handleDeleteVisitor = async (ip: string) => {
+    if (!window.confirm(`Are you sure you want to delete visitor ${ip}? This action cannot be undone.`)) {
+      return;
+    }
+
     setIsLoadingVisitors(true);
     try {
       const response = await fetch('/api/admin/visitor/delete', {
@@ -454,8 +458,8 @@ export default function AdminDashboard() {
         setVisitors(prev => prev.filter(visitor => visitor.ip !== ip));
         toast({
           title: "Visitor Deleted",
-          description: `IP ${ip} has been removed from tracking`,
-          className: "bg-gradient-to-r from-green-50 to-emerald-50 border-green-200",
+          description: `Visitor ${ip} has been deleted successfully`,
+          className: "bg-gradient-to-r from-blue-50 to-cyan-50 border-blue-200",
         });
       }
     } catch (error) {
@@ -895,31 +899,44 @@ export default function AdminDashboard() {
                                 {visitor.isBlocked ? 'Blocked' : 'Active'}
                               </span>
                             </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium flex gap-2">
-                              {visitor.isBlocked ? (
-                                <Button
-                                  onClick={() => handleUnblockVisitor(visitor.ip)}
-                                  disabled={isLoadingVisitors}
-                                  className="bg-green-500 hover:bg-green-600 text-white px-3 py-1 text-xs rounded-md"
-                                >
-                                  Unblock
-                                </Button>
-                              ) : (
-                                <Button
-                                  onClick={() => handleBlockVisitor(visitor.ip)}
-                                  disabled={isLoadingVisitors}
-                                  className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 text-xs rounded-md"
-                                >
-                                  Block
-                                </Button>
-                              )}
-                              <Button
-                                onClick={() => handleDeleteVisitor(visitor.ip)}
-                                disabled={isLoadingVisitors}
-                                className="bg-gray-500 hover:bg-gray-600 text-white px-3 py-1 text-xs rounded-md"
-                              >
-                                Delete
-                              </Button>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                              <div className="flex items-center gap-2">
+                                {visitor.isBlocked ? (
+                                  <>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => handleUnblockVisitor(visitor.ip)}
+                                      className="text-green-600 border-green-200 hover:bg-green-50"
+                                      disabled={isLoadingVisitors}
+                                    >
+                                      <UserCheck className="h-4 w-4 mr-1" />
+                                      Unblock
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => handleDeleteVisitor(visitor.ip)}
+                                      className="text-red-600 border-red-200 hover:bg-red-50"
+                                      disabled={isLoadingVisitors}
+                                    >
+                                      <Trash2 className="h-4 w-4 mr-1" />
+                                      Delete
+                                    </Button>
+                                  </>
+                                ) : (
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => handleBlockVisitor(visitor.ip)}
+                                    className="text-red-600 border-red-200 hover:bg-red-50"
+                                    disabled={isLoadingVisitors}
+                                  >
+                                    <UserX className="h-4 w-4 mr-1" />
+                                    Block
+                                  </Button>
+                                )}
+                              </div>
                             </td>
                           </tr>
                         ))}
