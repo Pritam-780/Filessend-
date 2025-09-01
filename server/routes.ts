@@ -41,9 +41,10 @@ const upload = multer({
 // Initialize separate passwords for different operations
 let fileUploadPassword = "Ak47";
 let fileDeletePassword = "Ak47";
-let linkUploadPassword = "Ak47";
-let linkDeletePassword = "Ak47";
 let chatPassword = "Ak47";
+
+// Website status control
+let isWebsiteOnline = true;
 let adminPassword = "@gmail.pritam#";
 
 // Export function to get current chat password
@@ -52,6 +53,43 @@ export function getChatPassword(): string {
 }
 
 export async function registerRoutes(app: Express, io?: SocketIOServer): Promise<void> {
+
+  // Website status endpoint (accessible to all)
+  app.get("/api/website/status", (req, res) => {
+    res.json({ isOnline: isWebsiteOnline });
+  });
+
+  // Admin website toggle endpoint
+  app.post("/api/admin/toggle-website", async (req, res) => {
+    try {
+      const { isOnline } = req.body;
+      
+      if (typeof isOnline !== 'boolean') {
+        return res.status(400).json({ message: "isOnline must be a boolean" });
+      }
+
+      isWebsiteOnline = isOnline;
+
+      // Broadcast website status change to all connected clients
+      if (io) {
+        io.emit('website-status-changed', {
+          isOnline: isWebsiteOnline,
+          message: `Website ${isOnline ? 'enabled' : 'disabled'} by admin`,
+          timestamp: new Date().toISOString()
+        });
+        console.log(`Website ${isOnline ? 'enabled' : 'disabled'} by admin`);
+      }
+
+      res.json({
+        message: `Website ${isOnline ? 'enabled' : 'disabled'} successfully`,
+        isOnline: isWebsiteOnline,
+        changedAt: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error('Website toggle error:', error);
+      res.status(500).json({ message: "Failed to toggle website status" });
+    }
+  });
 
   // Get all files
   app.get("/api/files", async (req, res) => {
@@ -130,15 +168,22 @@ export async function registerRoutes(app: Express, io?: SocketIOServer): Promise
         const savedFile = await storage.createFile(fileData);
         uploadedFiles.push(savedFile);
 
-        // Broadcast file upload to all chat users
+        // Broadcast file upload to all connected clients
         if (io) {
-          io.to('main-chat').emit('file-uploaded', savedFile);
+          io.emit('file-uploaded', {
+            file: savedFile,
+            message: `New file uploaded: ${file.originalname}`,
+            timestamp: new Date().toISOString()
+          });
         }
       }
 
-      res.json(uploadedFiles);
+      res.json({ 
+        message: "Files uploaded successfully", 
+        files: uploadedFiles 
+      });
     } catch (error) {
-      console.error('Upload error:', error);
+      console.error("File upload error:", error);
       res.status(500).json({ message: "Failed to upload files" });
     }
   });
@@ -148,241 +193,96 @@ export async function registerRoutes(app: Express, io?: SocketIOServer): Promise
     try {
       const { id } = req.params;
       const file = await storage.getFile(id);
-
+      
       if (!file) {
         return res.status(404).json({ message: "File not found" });
       }
 
       const filePath = path.join(uploadDir, file.filename);
-
+      
       if (!fs.existsSync(filePath)) {
         return res.status(404).json({ message: "File not found on disk" });
       }
 
-      res.setHeader('Content-Disposition', `attachment; filename="${file.originalName}"`);
-      res.setHeader('Content-Type', file.mimeType);
-      res.sendFile(filePath);
+      res.download(filePath, file.originalName);
     } catch (error) {
       res.status(500).json({ message: "Failed to download file" });
     }
   });
 
-  // Get file info
-  app.get("/api/files/:id", async (req, res) => {
-    try {
-      const { id } = req.params;
-      const file = await storage.getFile(id);
-
-      if (!file) {
-        return res.status(404).json({ message: "File not found" });
-      }
-
-      res.json(file);
-    } catch (error) {
-      res.status(500).json({ message: "Failed to fetch file info" });
-    }
-  });
-
-  // Serve uploaded files for preview
+  // Preview file
   app.get("/api/files/:id/preview", async (req, res) => {
     try {
       const { id } = req.params;
       const file = await storage.getFile(id);
-
+      
       if (!file) {
         return res.status(404).json({ message: "File not found" });
       }
 
       const filePath = path.join(uploadDir, file.filename);
-
+      
       if (!fs.existsSync(filePath)) {
         return res.status(404).json({ message: "File not found on disk" });
       }
 
       res.setHeader('Content-Type', file.mimeType);
-      res.sendFile(filePath);
+      res.sendFile(path.resolve(filePath));
     } catch (error) {
       res.status(500).json({ message: "Failed to preview file" });
     }
   });
 
-  // Delete file permanently
+  // Delete file
   app.delete("/api/files/:id", async (req, res) => {
     try {
       const { id } = req.params;
       const { password } = req.body;
 
-      console.log('File deletion request:', { id, hasPassword: !!password });
-
-      // Verify password for deletion
+      // Verify password for file deletion
       if (!password || password !== fileDeletePassword) {
-        console.log('File deletion denied - invalid password');
-        return res.status(403).json({ message: "Access denied. Invalid password required for deletion." });
+        return res.status(403).json({ message: "Access denied. Invalid password required for file deletion." });
       }
 
       const file = await storage.getFile(id);
-
       if (!file) {
-        console.log(`File not found in database: ${id}`);
-        return res.status(404).json({ message: "File not found in database" });
+        return res.status(404).json({ message: "File not found" });
       }
 
+      // Delete physical file
       const filePath = path.join(uploadDir, file.filename);
-
-      // Delete file from database storage first
-      const deletedFromStorage = await storage.deleteFile(id);
-
-      if (!deletedFromStorage) {
-        console.log(`Failed to delete from storage: ${id}`);
-        return res.status(500).json({ message: "Failed to delete from database storage" });
-      }
-
-      // Delete physical file from disk
       if (fs.existsSync(filePath)) {
-        try {
-          fs.unlinkSync(filePath);
-          console.log(`Physical file permanently deleted: ${filePath}`);
-        } catch (fsError) {
-          console.error('Failed to delete physical file:', fsError);
-          // Continue execution - database deletion was successful
-        }
-      } else {
-        console.log(`Physical file not found (already deleted): ${filePath}`);
+        fs.unlinkSync(filePath);
       }
 
-      // Broadcast file deletion to all connected clients (chat users and website users)
+      // Delete from storage
+      await storage.deleteFile(id);
+
+      // Broadcast file deletion to all connected clients
       if (io) {
         io.emit('file-deleted', {
           fileId: id,
-          filename: file.originalName
+          fileName: file.originalName,
+          message: `File deleted: ${file.originalName}`,
+          timestamp: new Date().toISOString()
         });
-        console.log(`File deletion broadcasted to all clients: ${file.originalName}`);
       }
 
-      res.json({
-        message: "File permanently deleted from server and database",
-        fileId: id,
-        filename: file.originalName,
-        deletedAt: new Date().toISOString()
-      });
+      res.json({ message: "File deleted successfully" });
     } catch (error) {
-      console.error('Delete error:', error);
-      res.status(500).json({ message: "Failed to delete file permanently" });
+      console.error("File deletion error:", error);
+      res.status(500).json({ message: "Failed to delete file" });
     }
   });
 
-  // Link management routes
-  const links: Array<{
-    id: string;
-    title: string;
-    description: string;
-    url: string;
-    uploadedAt: string;
-  }> = [];
 
-  // Get all links
-  app.get("/api/links", async (req, res) => {
-    try {
-      res.json(links.sort((a, b) => new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime()));
-    } catch (error) {
-      res.status(500).json({ message: "Failed to fetch links" });
-    }
-  });
-
-  // Upload new link
-  app.post("/api/links/upload", async (req, res) => {
-    try {
-      const { title, description, url, password } = req.body;
-
-      if (password !== linkUploadPassword) {
-        return res.status(403).json({ message: "Access denied. Invalid password." });
-      }
-
-      if (!title || !description || !url) {
-        return res.status(400).json({ message: "Title, description, and URL are required" });
-      }
-
-      // Validate URL format
-      try {
-        new URL(url);
-      } catch {
-        return res.status(400).json({ message: "Invalid URL format" });
-      }
-
-      const newLink = {
-        id: `link-${Date.now()}-${Math.random().toString(36).substring(7)}`,
-        title: title.trim(),
-        description: description.trim(),
-        url: url.trim(),
-        uploadedAt: new Date().toISOString()
-      };
-
-      links.push(newLink);
-
-      // Broadcast link upload to all connected clients
-      if (io) {
-        io.emit('link-uploaded', newLink);
-        console.log(`Link uploaded and broadcasted: ${newLink.title}`);
-      }
-
-      res.json(newLink);
-    } catch (error) {
-      console.error('Link upload error:', error);
-      res.status(500).json({ message: "Failed to upload link" });
-    }
-  });
-
-  // Delete link
-  app.delete("/api/links/:id", async (req, res) => {
-    try {
-      const { id } = req.params;
-      const { password } = req.body;
-
-      if (!password || password !== linkDeletePassword) {
-        return res.status(403).json({ message: "Access denied. Invalid password required for deletion." });
-      }
-
-      const linkIndex = links.findIndex(link => link.id === id);
-
-      if (linkIndex === -1) {
-        return res.status(404).json({ message: "Link not found" });
-      }
-
-      const deletedLink = links[linkIndex];
-      links.splice(linkIndex, 1);
-
-      // Broadcast link deletion to all connected clients
-      if (io) {
-        io.emit('link-deleted', {
-          linkId: id,
-          title: deletedLink.title
-        });
-        console.log(`Link deletion broadcasted: ${deletedLink.title}`);
-      }
-
-      res.json({
-        message: "Link permanently deleted",
-        linkId: id,
-        title: deletedLink.title,
-        deletedAt: new Date().toISOString()
-      });
-    } catch (error) {
-      console.error('Link delete error:', error);
-      res.status(500).json({ message: "Failed to delete link" });
-    }
-  });
-
-  // Admin login route
+  // Admin login
   app.post("/api/admin/login", async (req, res) => {
     try {
       const { username, password } = req.body;
 
-      if (!username || !password) {
-        return res.status(400).json({ message: "Username and password are required" });
-      }
-
-      // Check admin credentials - username is "crazy_pritam" and password is admin password
-      if (username === "crazy_pritam" && password === adminPassword) {
+      // Simple authentication check
+      if (username === "admin" && password === adminPassword) {
         res.json({
           message: "Login successful",
           timestamp: new Date().toISOString()
@@ -391,12 +291,11 @@ export async function registerRoutes(app: Express, io?: SocketIOServer): Promise
         res.status(401).json({ message: "Invalid username or password" });
       }
     } catch (error) {
-      console.error('Admin login error:', error);
-      res.status(500).json({ message: "Failed to authenticate" });
+      res.status(500).json({ message: "Login failed" });
     }
   });
 
-  // Admin password management routes
+  // Admin password change route
   app.post("/api/admin/change-password", async (req, res) => {
     try {
       const { newPassword } = req.body;
@@ -405,21 +304,9 @@ export async function registerRoutes(app: Express, io?: SocketIOServer): Promise
         return res.status(400).json({ message: "New password is required" });
       }
 
-      // This endpoint is deprecated - use specific password endpoints instead
+      // Update all passwords
       fileUploadPassword = newPassword;
       fileDeletePassword = newPassword;
-      linkUploadPassword = newPassword;
-      linkDeletePassword = newPassword;
-      adminPassword = newPassword;
-
-      // Broadcast password change to all connected clients (optional)
-      if (io) {
-        io.emit('system-password-changed', {
-          message: 'System password has been updated by admin',
-          timestamp: new Date().toISOString()
-        });
-        console.log('System password changed by admin');
-      }
 
       res.json({
         message: "Password changed successfully",
@@ -459,6 +346,8 @@ export async function registerRoutes(app: Express, io?: SocketIOServer): Promise
     } catch (error) {
       console.error('Chat password change error:', error);
       res.status(500).json({ message: "Failed to change chat password" });
+    }
+  });
 
   // Individual password management routes
   app.post("/api/admin/change-file-upload-password", async (req, res) => {
@@ -484,34 +373,6 @@ export async function registerRoutes(app: Express, io?: SocketIOServer): Promise
       res.json({ message: "File delete password changed successfully", changedAt: new Date().toISOString() });
     } catch (error) {
       res.status(500).json({ message: "Failed to change file delete password" });
-    }
-  });
-
-  app.post("/api/admin/change-link-upload-password", async (req, res) => {
-    try {
-      const { newPassword } = req.body;
-      if (!newPassword) {
-        return res.status(400).json({ message: "New password is required" });
-      }
-      linkUploadPassword = newPassword;
-      res.json({ message: "Link upload password changed successfully", changedAt: new Date().toISOString() });
-    } catch (error) {
-      res.status(500).json({ message: "Failed to change link upload password" });
-    }
-  });
-
-  app.post("/api/admin/change-link-delete-password", async (req, res) => {
-    try {
-      const { newPassword } = req.body;
-      if (!newPassword) {
-        return res.status(400).json({ message: "New password is required" });
-      }
-      linkDeletePassword = newPassword;
-      res.json({ message: "Link delete password changed successfully", changedAt: new Date().toISOString() });
-    } catch (error) {
-      res.status(500).json({ message: "Failed to change link delete password" });
-    }
-  });
     }
   });
 

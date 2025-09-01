@@ -33,6 +33,10 @@ export default function AdminDashboard() {
   const [confirmChatPassword, setConfirmChatPassword] = useState("");
   const [isLoadingChat, setIsLoadingChat] = useState(false);
 
+  // Website status states
+  const [isWebsiteOnline, setIsWebsiteOnline] = useState(true);
+  const [isLoadingWebsiteToggle, setIsLoadingWebsiteToggle] = useState(false);
+
   // Toggle section expansion
   const toggleSection = (sectionId: string) => {
     setExpandedSections(prev => 
