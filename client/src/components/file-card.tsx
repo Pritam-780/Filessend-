@@ -21,26 +21,28 @@ export default function FileCard({ file, onDelete }: FileCardProps) {
   const isExcel = filename.toLowerCase().match(/\.(xlsx|xls|csv)$/);
 
   const getFileIcon = () => {
-    if (file.mimeType.startsWith('image/')) {
+    const mimeType = file?.mimeType || '';
+    if (mimeType.startsWith('image/')) {
       return <Image className="h-6 w-6 text-blue-600" />;
     }
-    if (file.mimeType === 'application/pdf') {
+    if (mimeType === 'application/pdf') {
       return <FileText className="h-6 w-6 text-red-600" />;
     }
-    if (file.mimeType.includes('excel') || file.mimeType.includes('spreadsheet')) {
+    if (mimeType.includes('excel') || mimeType.includes('spreadsheet')) {
       return <FileSpreadsheet className="h-6 w-6 text-green-600" />;
     }
     return <FileText className="h-6 w-6 text-gray-600" />;
   };
 
   const getFileTypeDisplay = () => {
-    if (file.mimeType.startsWith('image/')) {
-      return file.mimeType.split('/')[1].toUpperCase();
+    const mimeType = file?.mimeType || '';
+    if (mimeType.startsWith('image/')) {
+      return mimeType.split('/')[1].toUpperCase();
     }
-    if (file.mimeType === 'application/pdf') {
+    if (mimeType === 'application/pdf') {
       return 'PDF';
     }
-    if (file.mimeType.includes('excel') || file.mimeType.includes('spreadsheet')) {
+    if (mimeType.includes('excel') || mimeType.includes('spreadsheet')) {
       return 'XLS';
     }
     return 'FILE';
@@ -96,17 +98,18 @@ export default function FileCard({ file, onDelete }: FileCardProps) {
         <div className="bg-gradient-to-br from-blue-100 to-indigo-100 w-14 h-14 rounded-xl flex items-center justify-center mb-4 shadow-md">
           {getFileIcon()}
         </div>
-        <h5 className="font-bold text-gray-800 mb-2 truncate text-lg" title={file.originalName}>
-          {file.originalName}
+        <h5 className="font-bold text-gray-800 mb-2 truncate text-lg" title={file?.originalName || 'Unknown file'}>
+          {file?.originalName || 'Unknown file'}
         </h5>
         <p className="text-sm text-blue-600 mb-4 font-medium">
-          {getFileTypeDisplay()} • {(file.size / 1024 / 1024).toFixed(1)} MB
+          {getFileTypeDisplay()} • {((file?.size || 0) / 1024 / 1024).toFixed(1)} MB
         </p>
         <div className="flex gap-2">
           <Button 
-            onClick={() => onPreview(file)}
+            onClick={() => file && onPreview(file)}
             className="flex-1 bg-primary text-white hover:bg-primary/90 text-sm font-medium"
             size="sm"
+            disabled={!file}
           >
             <Eye className="h-3 w-3 mr-1" />
             <span className="hidden sm:inline">Preview</span>
@@ -136,7 +139,7 @@ export default function FileCard({ file, onDelete }: FileCardProps) {
         isOpen={showDeleteModal}
         onClose={() => setShowDeleteModal(false)}
         onConfirm={handleDelete}
-        fileName={file.originalName}
+        fileName={file?.originalName || 'Unknown file'}
       />
     </>
   );
