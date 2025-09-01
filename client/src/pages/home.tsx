@@ -40,9 +40,11 @@ export default function Home() {
   });
 
   useEffect(() => {
-    setFiles(fetchedFiles);
-    setIsLoading(false);
-  }, [fetchedFiles]);
+    if (fetchedFiles && !isFetching) {
+      setFiles(fetchedFiles);
+      setIsLoading(false);
+    }
+  }, [fetchedFiles, isFetching]);
 
   // Set up real-time socket connection
   useEffect(() => {
@@ -51,23 +53,32 @@ export default function Home() {
     socket.on('file-uploaded', (newFile) => {
       // Add new file to cache and update local state
       queryClient.setQueryData(['files'], (oldFiles: any[] = []) => {
+        // Check if file already exists to prevent duplicates
+        const exists = oldFiles.some(file => file.id === newFile.id);
+        if (exists) return oldFiles;
+        
         const updatedFiles = [{ ...newFile, uploadedAt: new Date(newFile.uploadedAt) }, ...oldFiles];
-        setFiles(updatedFiles);
         return updatedFiles;
       });
+      refetch(); // Refetch to ensure consistency
     });
 
     socket.on('file-deleted', (data) => {
       // Remove deleted file from cache and update local state immediately
       queryClient.setQueryData(['files'], (oldFiles: any[] = []) => {
         const updatedFiles = oldFiles.filter(file => file.id !== data.fileId);
-        setFiles(updatedFiles);
         return updatedFiles;
       });
+      refetch(); // Refetch to ensure consistency
     });
 
     socket.on('link-uploaded', (newLink) => {
-      setUploadedLinks(prevLinks => [newLink, ...prevLinks]);
+      setUploadedLinks(prevLinks => {
+        // Check if link already exists to prevent duplicates
+        const exists = prevLinks.some(link => link.id === newLink.id);
+        if (exists) return prevLinks;
+        return [newLink, ...prevLinks];
+      });
     });
 
     socket.on('link-deleted', (data) => {
@@ -77,14 +88,16 @@ export default function Home() {
     return () => {
       socket.disconnect();
     };
-  }, [queryClient]);
+  }, [queryClient, refetch]);
 
   // Load uploaded links on component mount and set up mobile menu listeners
   useEffect(() => {
+    let mounted = true;
+    
     const loadUploadedLinks = async () => {
       try {
         const response = await fetch('/api/links');
-        if (response.ok) {
+        if (response.ok && mounted) {
           const links = await response.json();
           setUploadedLinks(links);
         }
@@ -103,6 +116,7 @@ export default function Home() {
     window.addEventListener('openViewLinksModal', handleOpenViewLinksModal);
 
     return () => {
+      mounted = false;
       window.removeEventListener('openLinkUploadModal', handleOpenLinkUploadModal);
       window.removeEventListener('openViewLinksModal', handleOpenViewLinksModal);
     };
@@ -239,8 +253,8 @@ Your colorful digital library for organizing and accessing academic books, relax
             <div className="mt-6">
               <h3 className="text-xl font-bold text-gray-800 mb-4">Recently Uploaded Links</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {uploadedLinks.slice(0, 3).map((link) => (
-                  <div key={link.id} className="bg-white rounded-lg p-4 shadow-md border border-orange-200 hover:shadow-lg transition-shadow">
+                {uploadedLinks.slice(0, 3).map((link, index) => (
+                  <div key={`recent-${link.id}-${index}`} className="bg-white rounded-lg p-4 shadow-md border border-orange-200 hover:shadow-lg transition-shadow">
                     <h4 className="font-semibold text-gray-800 mb-2 truncate">{link.title}</h4>
                     <p className="text-sm text-gray-600 mb-3 line-clamp-2">{link.description}</p>
                     <a
