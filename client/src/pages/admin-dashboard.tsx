@@ -842,7 +842,215 @@ export default function AdminDashboard() {
     );
   };
 
-  return (
+  // Chat Room Operator Component
+  const ChatRoomOperator = () => {
+    const [chatUsers, setChatUsers] = useState<Array<{username: string, ip: string, joinedAt: number}>>([]);
+    const [isLoadingChatUsers, setIsLoadingChatUsers] = useState(false);
+
+    useEffect(() => {
+      const fetchChatUsers = async () => {
+        setIsLoadingChatUsers(true);
+        try {
+          const response = await fetch('/api/admin/chat-users');
+          if (response.ok) {
+            const data = await response.json();
+            setChatUsers(data.users || []);
+          }
+        } catch (error) {
+          console.error('Failed to load chat users:', error);
+        }
+        setIsLoadingChatUsers(false);
+      };
+
+      fetchChatUsers();
+      
+      // Poll for updates every 3 seconds
+      const interval = setInterval(fetchChatUsers, 3000);
+      
+      return () => clearInterval(interval);
+    }, []);
+
+    return (
+      <div className="space-y-6">
+        {/* Chat Status Overview */}
+        <div className="bg-gradient-to-r from-cyan-50 to-blue-50 p-6 rounded-xl border border-cyan-200 shadow-lg">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-full flex items-center justify-center shadow-md">
+                <MessageCircle className="h-6 w-6 text-white" />
+              </div>
+              <div>
+                <h4 className="text-xl font-bold bg-gradient-to-r from-cyan-600 to-blue-600 bg-clip-text text-transparent">
+                  Chat Room Status
+                </h4>
+                <p className="text-gray-600">Real-time monitoring of active chat users</p>
+              </div>
+            </div>
+            
+            <div className="text-center">
+              <div className={`px-4 py-2 rounded-full text-sm font-bold ${
+                chatUsers.length > 0 
+                  ? 'bg-green-100 text-green-800 border border-green-200' 
+                  : 'bg-gray-100 text-gray-800 border border-gray-200'
+              }`}>
+                {chatUsers.length} Users Online
+              </div>
+              <p className="text-xs text-gray-500 mt-1">
+                {isLoadingChatUsers ? 'Refreshing...' : 'Auto-refresh every 3s'}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Active Chat Users Table */}
+        <div className="bg-white rounded-xl border border-cyan-200 shadow-lg overflow-hidden">
+          <div className="bg-gradient-to-r from-cyan-50 to-blue-50 p-4 border-b border-cyan-200">
+            <h4 className="text-lg font-bold text-cyan-700 flex items-center gap-2">
+              <div className="w-3 h-3 bg-cyan-500 rounded-full animate-pulse"></div>
+              Active Chat Users
+            </h4>
+            <p className="text-sm text-cyan-600">Users currently connected to the chat room</p>
+          </div>
+
+          <div className="p-4">
+            {isLoadingChatUsers ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-500"></div>
+                <span className="ml-3 text-cyan-600">Loading chat users...</span>
+              </div>
+            ) : chatUsers.length === 0 ? (
+              <div className="text-center py-10">
+                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <MessageCircle className="h-8 w-8 text-gray-400" />
+                </div>
+                <p className="text-gray-500 font-medium">No users in chat room</p>
+                <p className="text-sm text-gray-400 mt-1">Users will appear here when they join the chat</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gradient-to-r from-cyan-50 to-blue-50">
+                    <tr>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-bold text-cyan-600 uppercase tracking-wider">
+                        #
+                      </th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-bold text-cyan-600 uppercase tracking-wider">
+                        Username
+                      </th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-bold text-cyan-600 uppercase tracking-wider">
+                        IP Address
+                      </th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-bold text-cyan-600 uppercase tracking-wider">
+                        Joined At
+                      </th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-bold text-cyan-600 uppercase tracking-wider">
+                        Duration
+                      </th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-bold text-cyan-600 uppercase tracking-wider">
+                        Actions
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {chatUsers.map((user, index) => {
+                      const joinedAt = new Date(user.joinedAt);
+                      const duration = Math.floor((Date.now() - user.joinedAt) / 1000 / 60); // minutes
+                      
+                      return (
+                        <tr key={`${user.username}-${user.ip}`} className="hover:bg-cyan-50 transition-colors duration-200">
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                            <div className="flex items-center gap-2">
+                              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                              {index + 1}
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="flex items-center gap-2">
+                              <div className="w-8 h-8 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-full flex items-center justify-center">
+                                <span className="text-white text-xs font-bold">
+                                  {user.username.charAt(0).toUpperCase()}
+                                </span>
+                              </div>
+                              <span className="text-sm font-medium text-gray-900">{user.username}</span>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-mono bg-gray-50 rounded-md">
+                            {user.ip}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {joinedAt.toLocaleTimeString()}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">
+                              {duration < 1 ? 'Just now' : `${duration}m ago`}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                            <div className="flex items-center gap-2">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleBlockVisitor(user.ip)}
+                                className="text-red-600 border-red-200 hover:bg-red-50 transform hover:scale-105 transition-all duration-200"
+                                disabled={isLoadingVisitors}
+                              >
+                                <UserX className="h-4 w-4 mr-1" />
+                                Block
+                              </Button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+
+          {/* Live Stats */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-4 rounded-xl border border-green-200">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center">
+                  <MessageCircle className="h-5 w-5 text-white" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-green-600">{chatUsers.length}</p>
+                  <p className="text-sm text-green-600">Active Users</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-xl border border-blue-200">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center">
+                  <Shield className="h-5 w-5 text-white" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-blue-600">{visitors.filter(v => v.isBlocked).length}</p>
+                  <p className="text-sm text-blue-600">Blocked IPs</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-gradient-to-r from-purple-50 to-violet-50 p-4 rounded-xl border border-purple-200">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-purple-500 rounded-full flex items-center justify-center">
+                  <Shield className="h-5 w-5 text-white" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-purple-600">{visitors.length}</p>
+                  <p className="text-sm text-purple-600">Total Visitors</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Visitor Management Section */}
+      <div className="mb-8 border border-blue-200 rounded-2xl overflow-hidden shadow-xl transition-all duration-300"></div>
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 p-4">
       <div className="max-w-4xl mx-auto pt-8">
         {/* Header */}
@@ -1233,8 +1441,53 @@ export default function AdminDashboard() {
             </div>
           </div>
 
+          {/* Chat Room Operator Section */}
+          <div className="mb-8 border border-cyan-200 rounded-2xl overflow-hidden shadow-xl transition-all duration-300">
+            <div 
+              className="bg-gradient-to-r from-cyan-50 to-blue-50 p-6 cursor-pointer hover:from-cyan-100 hover:to-blue-100 transition-all duration-300 border-b border-cyan-200"
+              onClick={() => toggleSection('chat-operator')}
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="bg-gradient-to-br from-cyan-100 to-blue-100 w-16 h-16 rounded-full flex items-center justify-center shadow-lg animate-pulse">
+                    <MessageCircle className="h-8 w-8 text-cyan-600" />
+                  </div>
+                  <div>
+                    <h3 className="text-2xl font-bold bg-gradient-to-r from-cyan-600 to-blue-600 bg-clip-text text-transparent">
+                      💬 Chat Room Operator
+                    </h3>
+                    <p className="text-gray-600 text-lg">Monitor users currently in the chat room</p>
+                    <div className="flex items-center gap-2 mt-2">
+                      <div className="w-2 h-2 bg-cyan-400 rounded-full animate-ping"></div>
+                      <span className="text-sm text-cyan-600 font-medium">
+                        Real-time chat monitoring
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex flex-col items-center gap-2">
+                  <p className="text-sm font-bold text-cyan-600 animate-bounce">Click to {isExpanded('chat-operator') ? 'Close' : 'Open'}</p>
+                  <div className="transition-transform duration-300">
+                    {isExpanded('chat-operator') ? (
+                      <ChevronDown className="h-8 w-8 text-cyan-600 animate-pulse" />
+                    ) : (
+                      <ChevronRight className="h-8 w-8 text-cyan-600 animate-pulse" />
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className={`transition-all duration-500 ease-in-out ${isExpanded('chat-operator') ? 'max-h-[800px] opacity-100' : 'max-h-0 opacity-0'} overflow-hidden`}>
+              <div className="p-6 bg-white">
+                <ChatRoomOperator />
+              </div>
+            </div>
+          </div>
+
           {/* Visitor Management Section */}
-          <div className="mb-8 border border-blue-200 rounded-2xl overflow-hidden shadow-xl transition-all duration-300">
+          <div className="mb-8 border border-blue-200 rounded-2xl overflow-hidden shadow-xl transition-all duration-300"></div>
             <div 
               className="bg-gradient-to-r from-blue-50 to-cyan-50 p-6 cursor-pointer hover:from-blue-100 hover:to-cyan-100 transition-all duration-300 border-b border-blue-200"
               onClick={() => toggleSection('visitor-management')}

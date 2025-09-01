@@ -916,6 +916,18 @@ export async function registerRoutes(app: Express, io?: SocketIOServer): Promise
     }
   });
 
+  // Admin chat users endpoint
+  app.get("/api/admin/chat-users", (req, res) => {
+    try {
+      // Get current chat users from the socket.io server
+      const chatUsers = Array.from((global as any).chatUsers?.values() || []);
+      res.json({ users: chatUsers });
+    } catch (error) {
+      console.error('Failed to fetch chat users:', error);
+      res.status(500).json({ message: "Failed to fetch chat users", users: [] });
+    }
+  });
+
   // Admin visitor management endpoints
   app.get("/api/admin/visitors", (req, res) => {
     try {
