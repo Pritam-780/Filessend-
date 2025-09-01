@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
-import { Lock, Key, Save, ArrowLeft, Shield, MessageCircle, Upload, Trash2, Link, FileText } from "lucide-react";
+import { Lock, Key, Save, ArrowLeft, Shield, MessageCircle, Upload, Trash2, Link, FileText, ChevronDown, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
@@ -8,6 +8,9 @@ import { useToast } from "@/hooks/use-toast";
 export default function AdminDashboard() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+
+  // State for tracking which sections are expanded
+  const [expandedSections, setExpandedSections] = useState<string[]>([]);
 
   // Password states for each operation
   const [fileUploadPassword, setFileUploadPassword] = useState("");
@@ -29,6 +32,17 @@ export default function AdminDashboard() {
   const [chatPassword, setChatPassword] = useState("");
   const [confirmChatPassword, setConfirmChatPassword] = useState("");
   const [isLoadingChat, setIsLoadingChat] = useState(false);
+
+  // Toggle section expansion
+  const toggleSection = (sectionId: string) => {
+    setExpandedSections(prev => 
+      prev.includes(sectionId) 
+        ? prev.filter(id => id !== sectionId)
+        : [...prev, sectionId]
+    );
+  };
+
+  const isExpanded = (sectionId: string) => expandedSections.includes(sectionId);
 
   // Generic password change handler
   const handlePasswordChange = async (
@@ -163,8 +177,9 @@ export default function AdminDashboard() {
       'Chat Room'
     );
 
-  // Component for rendering password sections
-  const PasswordSection = ({
+  // Component for rendering collapsible password sections
+  const CollapsiblePasswordSection = ({
+    sectionId,
     title,
     description,
     icon: Icon,
@@ -176,6 +191,7 @@ export default function AdminDashboard() {
     isLoading,
     colorScheme,
   }: {
+    sectionId: string;
     title: string;
     description: string;
     icon: any;
@@ -186,72 +202,96 @@ export default function AdminDashboard() {
     onSubmit: (e: React.FormEvent) => void;
     isLoading: boolean;
     colorScheme: string;
-  }) => (
-    <div className={`bg-gradient-to-r ${colorScheme}-50 rounded-xl p-6 border ${colorScheme}-200 mb-6`}>
-      <h2 className="text-xl font-bold text-gray-800 mb-3 flex items-center gap-2">
-        <Icon className={`h-5 w-5 text-${colorScheme}-600`} />
-        {title}
-      </h2>
-      <p className="text-gray-600 mb-4 text-sm">
-        {description}
-      </p>
-
-      <form onSubmit={onSubmit} className="space-y-4">
-        <div className="space-y-2">
-          <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
-            <Key className="h-4 w-4" />
-            New Password
-          </label>
-          <Input
-            type="password"
-            value={newPassword}
-            onChange={(e) => setNewPassword(e.target.value)}
-            placeholder="Enter new password"
-            className={`border-gray-300 focus:border-${colorScheme}-500 focus:ring-${colorScheme}-500`}
-            disabled={isLoading}
-            required
-            data-testid={`input-${title.toLowerCase().replace(/\s+/g, '-')}-password`}
-          />
-        </div>
-
-        <div className="space-y-2">
-          <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
-            <Key className="h-4 w-4" />
-            Confirm Password
-          </label>
-          <Input
-            type="password"
-            value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
-            placeholder="Confirm new password"
-            className={`border-gray-300 focus:border-${colorScheme}-500 focus:ring-${colorScheme}-500`}
-            disabled={isLoading}
-            required
-            data-testid={`input-confirm-${title.toLowerCase().replace(/\s+/g, '-')}-password`}
-          />
-        </div>
-
-        <Button
-          type="submit"
-          className={`w-full bg-gradient-to-r from-${colorScheme}-600 to-${colorScheme}-700 text-white hover:from-${colorScheme}-700 hover:to-${colorScheme}-800 shadow-lg font-medium py-2`}
-          disabled={isLoading || !newPassword || !confirmPassword}
-          data-testid={`button-change-${title.toLowerCase().replace(/\s+/g, '-')}-password`}
+  }) => {
+    const expanded = isExpanded(sectionId);
+    
+    return (
+      <div className={`border border-${colorScheme}-200 rounded-xl mb-4 overflow-hidden transition-all duration-300`}>
+        {/* Header - Always visible */}
+        <div 
+          className={`bg-gradient-to-r from-${colorScheme}-50 to-${colorScheme}-100 p-4 cursor-pointer hover:from-${colorScheme}-100 hover:to-${colorScheme}-150 transition-all duration-200`}
+          onClick={() => toggleSection(sectionId)}
         >
-          {isLoading ? (
-            <div className="flex items-center gap-2">
-              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-              Updating...
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Icon className={`h-5 w-5 text-${colorScheme}-600`} />
+              <div>
+                <h3 className="font-bold text-gray-800 text-lg">{title}</h3>
+                <p className="text-gray-600 text-sm">{description}</p>
+              </div>
             </div>
-          ) : (
-            <div className="flex items-center gap-2">
-              <Save className="h-4 w-4" />
-              Change Password
+            <div className="transition-transform duration-200">
+              {expanded ? (
+                <ChevronDown className={`h-5 w-5 text-${colorScheme}-600`} />
+              ) : (
+                <ChevronRight className={`h-5 w-5 text-${colorScheme}-600`} />
+              )}
             </div>
-          )}
-        </Button>
-      </form>
-    </div>
-  );
+          </div>
+        </div>
+
+        {/* Content - Collapsible */}
+        <div className={`transition-all duration-300 ease-in-out ${expanded ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'} overflow-hidden`}>
+          <div className="p-4 bg-white">
+            <form onSubmit={onSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                  <Key className="h-4 w-4" />
+                  New Password
+                </label>
+                <Input
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="Enter new password"
+                  className={`border-gray-300 focus:border-${colorScheme}-500 focus:ring-${colorScheme}-500`}
+                  disabled={isLoading}
+                  required
+                  data-testid={`input-${title.toLowerCase().replace(/\s+/g, '-')}-password`}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                  <Key className="h-4 w-4" />
+                  Confirm Password
+                </label>
+                <Input
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="Confirm new password"
+                  className={`border-gray-300 focus:border-${colorScheme}-500 focus:ring-${colorScheme}-500`}
+                  disabled={isLoading}
+                  required
+                  data-testid={`input-confirm-${title.toLowerCase().replace(/\s+/g, '-')}-password`}
+                />
+              </div>
+
+              <Button
+                type="submit"
+                className={`w-full bg-gradient-to-r from-${colorScheme}-600 to-${colorScheme}-700 text-white hover:from-${colorScheme}-700 hover:to-${colorScheme}-800 shadow-lg font-medium py-2`}
+                disabled={isLoading || !newPassword || !confirmPassword}
+                data-testid={`button-change-${title.toLowerCase().replace(/\s+/g, '-')}-password`}
+              >
+                {isLoading ? (
+                  <div className="flex items-center gap-2">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    Updating...
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <Save className="h-4 w-4" />
+                    Change Password
+                  </div>
+                )}
+              </Button>
+            </form>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 p-4">
@@ -279,14 +319,16 @@ export default function AdminDashboard() {
               Admin Dashboard
             </h1>
             <p className="text-gray-600 mt-2">Manage individual passwords for different system operations</p>
+            <p className="text-sm text-gray-500 mt-2">Click on any section below to expand password settings</p>
           </div>
 
-          {/* Grid Layout for Password Sections */}
-          <div className="grid md:grid-cols-2 gap-6">
+          {/* Collapsible Password Sections */}
+          <div className="space-y-4">
             {/* File Upload Password */}
-            <PasswordSection
+            <CollapsiblePasswordSection
+              sectionId="file-upload"
               title="File Upload Password"
-              description="Password required for uploading new files to the system."
+              description="Password required for uploading new files to the system"
               icon={Upload}
               newPassword={fileUploadPassword}
               setNewPassword={setFileUploadPassword}
@@ -298,9 +340,10 @@ export default function AdminDashboard() {
             />
 
             {/* File Delete Password */}
-            <PasswordSection
+            <CollapsiblePasswordSection
+              sectionId="file-delete"
               title="File Delete Password"
-              description="Password required for deleting files from the system."
+              description="Password required for deleting files from the system"
               icon={Trash2}
               newPassword={fileDeletePassword}
               setNewPassword={setFileDeletePassword}
@@ -312,9 +355,10 @@ export default function AdminDashboard() {
             />
 
             {/* Link Upload Password */}
-            <PasswordSection
+            <CollapsiblePasswordSection
+              sectionId="link-upload"
               title="Link Upload Password"
-              description="Password required for adding new links to the system."
+              description="Password required for adding new links to the system"
               icon={Link}
               newPassword={linkUploadPassword}
               setNewPassword={setLinkUploadPassword}
@@ -326,9 +370,10 @@ export default function AdminDashboard() {
             />
 
             {/* Link Delete Password */}
-            <PasswordSection
+            <CollapsiblePasswordSection
+              sectionId="link-delete"
               title="Link Delete Password"
-              description="Password required for removing links from the system."
+              description="Password required for removing links from the system"
               icon={FileText}
               newPassword={linkDeletePassword}
               setNewPassword={setLinkDeletePassword}
@@ -340,20 +385,19 @@ export default function AdminDashboard() {
             />
 
             {/* Chat Room Password */}
-            <div className="md:col-span-2">
-              <PasswordSection
-                title="Chat Room Password"
-                description="Password required for users to join the chat room."
-                icon={MessageCircle}
-                newPassword={chatPassword}
-                setNewPassword={setChatPassword}
-                confirmPassword={confirmChatPassword}
-                setConfirmPassword={setConfirmChatPassword}
-                onSubmit={handleChatPasswordChange}
-                isLoading={isLoadingChat}
-                colorScheme="purple"
-              />
-            </div>
+            <CollapsiblePasswordSection
+              sectionId="chat-room"
+              title="Chat Room Password"
+              description="Password required for users to join the chat room"
+              icon={MessageCircle}
+              newPassword={chatPassword}
+              setNewPassword={setChatPassword}
+              confirmPassword={confirmChatPassword}
+              setConfirmPassword={setConfirmChatPassword}
+              onSubmit={handleChatPasswordChange}
+              isLoading={isLoadingChat}
+              colorScheme="purple"
+            />
           </div>
 
           {/* Security Notice */}
