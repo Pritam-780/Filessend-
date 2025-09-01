@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { Link } from "wouter";
-import { X, Home, GraduationCap, BookOpen, Users, MessageCircle } from "lucide-react";
+import { X, Home, GraduationCap, BookOpen, Users, MessageCircle, Upload, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface MobileMenuProps {
@@ -90,6 +90,32 @@ export default function MobileMenu({
             >
               <MessageCircle className="h-5 w-5 mr-3" />
               Chat Room
+            </div>
+
+            <div
+              onClick={() => {
+                // Trigger upload link modal
+                const event = new CustomEvent('openLinkUploadModal');
+                window.dispatchEvent(event);
+                onClose();
+              }}
+              className="flex items-center py-3 px-4 text-secondary hover:bg-gray-100 rounded-lg transition-colors font-medium cursor-pointer"
+            >
+              <Upload className="h-5 w-5 mr-3" />
+              Upload Link
+            </div>
+
+            <div
+              onClick={() => {
+                // Trigger view links modal
+                const event = new CustomEvent('openViewLinksModal');
+                window.dispatchEvent(event);
+                onClose();
+              }}
+              className="flex items-center py-3 px-4 text-secondary hover:bg-gray-100 rounded-lg transition-colors font-medium cursor-pointer"
+            >
+              <FileText className="h-5 w-5 mr-3" />
+              View Links
             </div>
           </nav>
         </div>

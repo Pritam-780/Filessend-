@@ -79,9 +79,9 @@ export default function Home() {
     };
   }, [queryClient]);
 
-  // Load uploaded links on component mount
+  // Load uploaded links on component mount and set up mobile menu listeners
   useEffect(() => {
-    const loadLinks = async () => {
+    const loadUploadedLinks = async () => {
       try {
         const response = await fetch('/api/links');
         if (response.ok) {
@@ -92,8 +92,20 @@ export default function Home() {
         console.error('Failed to load links:', error);
       }
     };
-    
-    loadLinks();
+
+    loadUploadedLinks();
+
+    // Listen for mobile menu events
+    const handleOpenLinkUploadModal = () => setShowLinkUploadModal(true);
+    const handleOpenViewLinksModal = () => setShowLinksModal(true);
+
+    window.addEventListener('openLinkUploadModal', handleOpenLinkUploadModal);
+    window.addEventListener('openViewLinksModal', handleOpenViewLinksModal);
+
+    return () => {
+      window.removeEventListener('openLinkUploadModal', handleOpenLinkUploadModal);
+      window.removeEventListener('openViewLinksModal', handleOpenViewLinksModal);
+    };
   }, []);
 
 
@@ -210,15 +222,9 @@ Your colorful digital library for organizing and accessing academic books, relax
           <p className="text-lg text-gray-700 mb-6 text-center max-w-2xl mx-auto font-medium">
             Upload and share important links with descriptions. Perfect for sharing resources, websites, and references.
           </p>
-          
+
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-6">
-            <Button
-              onClick={() => setShowLinkUploadModal(true)}
-              className="bg-gradient-to-r from-orange-600 via-red-600 to-pink-600 text-white px-8 py-3 rounded-xl text-lg font-bold hover:from-orange-700 hover:via-red-700 hover:to-pink-700 shadow-2xl transform hover:scale-105 transition-all duration-300"
-            >
-              <Plus className="h-5 w-5 mr-2" />
-              Upload Link
-            </Button>
+            {/* The "Upload Link" button has been moved to the mobile menu */}
             <Button
               onClick={() => setShowLinksModal(true)}
               className="bg-gradient-to-r from-purple-600 via-violet-600 to-indigo-600 text-white px-8 py-3 rounded-xl text-lg font-bold hover:from-purple-700 hover:via-violet-700 hover:to-indigo-700 shadow-2xl transform hover:scale-105 transition-all duration-300"
@@ -227,7 +233,7 @@ Your colorful digital library for organizing and accessing academic books, relax
               View Uploaded Links
             </Button>
           </div>
-          
+
           {/* Recent Links Preview */}
           {uploadedLinks.length > 0 && (
             <div className="mt-6">
@@ -237,9 +243,9 @@ Your colorful digital library for organizing and accessing academic books, relax
                   <div key={link.id} className="bg-white rounded-lg p-4 shadow-md border border-orange-200 hover:shadow-lg transition-shadow">
                     <h4 className="font-semibold text-gray-800 mb-2 truncate">{link.title}</h4>
                     <p className="text-sm text-gray-600 mb-3 line-clamp-2">{link.description}</p>
-                    <a 
-                      href={link.url} 
-                      target="_blank" 
+                    <a
+                      href={link.url}
+                      target="_blank"
                       rel="noopener noreferrer"
                       className="text-orange-600 hover:text-orange-800 text-sm font-medium break-all"
                     >
@@ -283,6 +289,7 @@ Your colorful digital library for organizing and accessing academic books, relax
                   className="pl-10 w-full sm:w-80 border-blue-300 focus:border-blue-500 focus:ring-blue-500 bg-white/80"
                 />
               </div>
+              {/* The "Upload" button for files remains here */}
               <Button
                 onClick={() => setShowUploadModal(true)}
                 className="bg-gradient-to-r from-green-600 to-emerald-600 text-white hover:from-green-700 hover:to-emerald-700 shadow-lg font-medium rounded-lg"
