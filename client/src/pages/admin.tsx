@@ -17,18 +17,35 @@ export default function Admin() {
     e.preventDefault();
     setIsLoading(true);
 
-    // Check admin credentials
-    if (username === "crazy_pritam" && password === "@gmail.pritam#") {
-      toast({
-        title: "Login Successful",
-        description: "Welcome to admin panel!",
-        className: "bg-gradient-to-r from-green-50 to-emerald-50 border-green-200",
+    try {
+      // Check admin credentials via API
+      const response = await fetch('/api/admin/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ username, password }),
       });
-      setLocation("/admin/dashboard");
-    } else {
+
+      if (response.ok) {
+        toast({
+          title: "Login Successful",
+          description: "Welcome to admin panel!",
+          className: "bg-gradient-to-r from-green-50 to-emerald-50 border-green-200",
+        });
+        setLocation("/admin/dashboard");
+      } else {
+        const errorData = await response.json();
+        toast({
+          title: "Access Denied",
+          description: errorData.message || "Invalid username or password.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
       toast({
-        title: "Access Denied",
-        description: "Invalid username or password.",
+        title: "Error",
+        description: "Failed to connect to server.",
         variant: "destructive",
       });
     }
