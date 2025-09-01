@@ -8,13 +8,11 @@ import { useToast } from "@/hooks/use-toast";
 
 export default function AdminDashboard() {
   const [, setLocation] = useLocation();
-  const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   
   // Chat password states
-  const [currentChatPassword, setCurrentChatPassword] = useState("");
   const [newChatPassword, setNewChatPassword] = useState("");
   const [confirmChatPassword, setConfirmChatPassword] = useState("");
   const [isLoadingChat, setIsLoadingChat] = useState(false);
@@ -38,16 +36,6 @@ export default function AdminDashboard() {
       return;
     }
 
-    // Check if new password is different from current
-    if (newPassword === currentPassword) {
-      toast({
-        title: "Error",
-        description: "New password must be different from current password.",
-        variant: "destructive",
-      });
-      setIsLoading(false);
-      return;
-    }
 
     try {
       const response = await fetch('/api/admin/change-password', {
@@ -56,7 +44,6 @@ export default function AdminDashboard() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          currentPassword,
           newPassword,
         }),
       });
@@ -67,7 +54,6 @@ export default function AdminDashboard() {
           description: "All system passwords have been updated successfully!",
           className: "bg-gradient-to-r from-green-50 to-emerald-50 border-green-200",
         });
-        setCurrentPassword("");
         setNewPassword("");
         setConfirmPassword("");
       } else {
@@ -104,16 +90,6 @@ export default function AdminDashboard() {
       return;
     }
 
-    // Check if new password is different from current
-    if (newChatPassword === currentChatPassword) {
-      toast({
-        title: "Error",
-        description: "New chat password must be different from current password.",
-        variant: "destructive",
-      });
-      setIsLoadingChat(false);
-      return;
-    }
 
     try {
       const response = await fetch('/api/admin/change-chat-password', {
@@ -122,7 +98,6 @@ export default function AdminDashboard() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          currentPassword: currentChatPassword,
           newPassword: newChatPassword,
         }),
       });
@@ -133,7 +108,6 @@ export default function AdminDashboard() {
           description: "Chat room login password has been updated successfully!",
           className: "bg-gradient-to-r from-green-50 to-emerald-50 border-green-200",
         });
-        setCurrentChatPassword("");
         setNewChatPassword("");
         setConfirmChatPassword("");
       } else {
@@ -193,22 +167,6 @@ export default function AdminDashboard() {
             </p>
 
             <form onSubmit={handlePasswordChange} className="space-y-6">
-              <div className="space-y-2">
-                <label htmlFor="currentPassword" className="text-sm font-medium text-gray-700 flex items-center gap-2">
-                  <Lock className="h-4 w-4" />
-                  Enter your previous password
-                </label>
-                <Input
-                  id="currentPassword"
-                  type="password"
-                  value={currentPassword}
-                  onChange={(e) => setCurrentPassword(e.target.value)}
-                  placeholder="Enter current password"
-                  className="border-gray-300 focus:border-purple-500 focus:ring-purple-500"
-                  disabled={isLoading}
-                  required
-                />
-              </div>
 
               <div className="space-y-2">
                 <label htmlFor="newPassword" className="text-sm font-medium text-gray-700 flex items-center gap-2">
@@ -247,7 +205,7 @@ export default function AdminDashboard() {
               <Button
                 type="submit"
                 className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 text-white hover:from-purple-700 hover:to-indigo-700 shadow-lg font-medium py-3"
-                disabled={isLoading || !currentPassword || !newPassword || !confirmPassword}
+                disabled={isLoading || !newPassword || !confirmPassword}
               >
                 {isLoading ? (
                   <div className="flex items-center gap-2">
@@ -275,22 +233,6 @@ export default function AdminDashboard() {
             </p>
 
             <form onSubmit={handleChatPasswordChange} className="space-y-6">
-              <div className="space-y-2">
-                <label htmlFor="currentChatPassword" className="text-sm font-medium text-gray-700 flex items-center gap-2">
-                  <Lock className="h-4 w-4" />
-                  Enter current chat room password
-                </label>
-                <Input
-                  id="currentChatPassword"
-                  type="password"
-                  value={currentChatPassword}
-                  onChange={(e) => setCurrentChatPassword(e.target.value)}
-                  placeholder="Enter current chat password"
-                  className="border-gray-300 focus:border-emerald-500 focus:ring-emerald-500"
-                  disabled={isLoadingChat}
-                  required
-                />
-              </div>
 
               <div className="space-y-2">
                 <label htmlFor="newChatPassword" className="text-sm font-medium text-gray-700 flex items-center gap-2">
@@ -329,7 +271,7 @@ export default function AdminDashboard() {
               <Button
                 type="submit"
                 className="w-full bg-gradient-to-r from-emerald-600 to-teal-600 text-white hover:from-emerald-700 hover:to-teal-700 shadow-lg font-medium py-3"
-                disabled={isLoadingChat || !currentChatPassword || !newChatPassword || !confirmChatPassword}
+                disabled={isLoadingChat || !newChatPassword || !confirmChatPassword}
               >
                 {isLoadingChat ? (
                   <div className="flex items-center gap-2">

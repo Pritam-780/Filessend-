@@ -391,15 +391,10 @@ export async function registerRoutes(app: Express, io?: SocketIOServer): Promise
   // Admin password management routes
   app.post("/api/admin/change-password", async (req, res) => {
     try {
-      const { currentPassword, newPassword } = req.body;
+      const { newPassword } = req.body;
 
-      if (!currentPassword || !newPassword) {
-        return res.status(400).json({ message: "Current password and new password are required" });
-      }
-
-      // Verify current password (using system password for verification)
-      if (currentPassword !== systemPassword) {
-        return res.status(403).json({ message: "Current password is incorrect" });
+      if (!newPassword) {
+        return res.status(400).json({ message: "New password is required" });
       }
 
       // Update both system and admin passwords
@@ -428,15 +423,10 @@ export async function registerRoutes(app: Express, io?: SocketIOServer): Promise
   // Admin chat password management route
   app.post("/api/admin/change-chat-password", async (req, res) => {
     try {
-      const { currentPassword, newPassword } = req.body;
+      const { newPassword } = req.body;
 
-      if (!currentPassword || !newPassword) {
-        return res.status(400).json({ message: "Current password and new password are required" });
-      }
-
-      // Verify current chat password
-      if (currentPassword !== chatPassword) {
-        return res.status(403).json({ message: "Current chat password is incorrect" });
+      if (!newPassword) {
+        return res.status(400).json({ message: "New password is required" });
       }
 
       // Update chat password
