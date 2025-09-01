@@ -10,6 +10,9 @@ import rateLimit from "express-rate-limit";
 const app = express();
 const httpServer = createServer(app);
 
+// Trust proxy for Replit environment
+app.set('trust proxy', true);
+
 // Security middleware
 app.use(helmet({
   contentSecurityPolicy: {
