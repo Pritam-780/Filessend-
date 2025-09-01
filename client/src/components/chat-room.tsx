@@ -39,6 +39,7 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
   const [currentMessage, setCurrentMessage] = useState("");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [userCount, setUserCount] = useState(0);
+  const [onlineUsers, setOnlineUsers] = useState<Array<{username: string, ip: string, joinedAt: number}>>([]);
   const [isConnecting, setIsConnecting] = useState(false);
   const [hoveredMessage, setHoveredMessage] = useState<string | null>(null);
   const [showDeleteAllModal, setShowDeleteAllModal] = useState(false);
@@ -185,6 +186,10 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
 
       newSocket.on('user-count', (count: number) => {
         setUserCount(count);
+      });
+
+      newSocket.on('online-users', (users: Array<{username: string, ip: string, joinedAt: number}>) => {
+        setOnlineUsers(users);
       });
 
       newSocket.on('message-deleted', (messageId: string) => {
@@ -648,9 +653,16 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
               <div className="flex-1 min-w-0">
                 <h3 className="font-semibold text-white text-lg leading-tight">Chat Room</h3>
                 {isAuthenticated && (
-                  <p className="text-[#a8c4e8] text-sm">
-                    {userCount} {userCount === 1 ? 'member' : 'members'} online
-                  </p>
+                  <div>
+                    <p className="text-[#a8c4e8] text-sm">
+                      {userCount} {userCount === 1 ? 'member' : 'members'} online
+                    </p>
+                    {onlineUsers.length > 0 && (
+                      <div className="text-xs text-[#a8c4e8] mt-1">
+                        Online: {onlineUsers.map(user => `${user.username} (${user.ip})`).join(', ')}
+                      </div>
+                    )}
+                  </div>
                 )}
               </div>
             </div>

@@ -8,11 +8,30 @@ import { useToast } from "@/hooks/use-toast";
 // Define the structure for visitor data
 interface Visitor {
   id: string;
-  name: string;
   ip: string;
-  timestamp: string;
+  name?: string;
+  firstVisit: string;
+  lastActive: string;
   isBlocked: boolean;
+  visitCount: number;
 }
+
+interface FileUploadRecord {
+  fileId: string;
+  fileName: string;
+  uploaderName: string;
+  uploaderIP: string;
+  uploadedAt: string;
+}
+
+interface LinkUploadRecord {
+  linkId: string;
+  linkTitle: string;
+  uploaderName: string;
+  uploaderIP: string;
+  uploadedAt: string;
+}
+
 
 export default function AdminDashboard() {
   const [, setLocation] = useLocation();
@@ -55,6 +74,8 @@ export default function AdminDashboard() {
   // Visitor management states
   const [visitors, setVisitors] = useState<Visitor[]>([]);
   const [isLoadingVisitors, setIsLoadingVisitors] = useState(false);
+  const [fileUploads, setFileUploads] = useState<FileUploadRecord[]>([]);
+  const [linkUploads, setLinkUploads] = useState<LinkUploadRecord[]>([]);
 
   // Load initial website status and announcements
   useEffect(() => {
@@ -88,7 +109,9 @@ export default function AdminDashboard() {
         const response = await fetch('/api/admin/visitors');
         if (response.ok) {
           const data = await response.json();
-          setVisitors(data.visitors);
+          setVisitors(data.visitors || []);
+          setFileUploads(data.fileUploads || []);
+          setLinkUploads(data.linkUploads || []);
         }
       } catch (error) {
         console.error('Failed to load visitors:', error);
@@ -937,6 +960,152 @@ export default function AdminDashboard() {
                                   </Button>
                                 )}
                               </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* File Upload Tracking Section */}
+          <div className="mb-8 border border-green-200 rounded-2xl overflow-hidden shadow-xl transition-all duration-300">
+            <div 
+              className="bg-gradient-to-r from-green-50 to-emerald-50 p-6 cursor-pointer hover:from-green-100 hover:to-emerald-100 transition-all duration-300 border-b border-green-200"
+              onClick={() => toggleSection('file-uploads')}
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="bg-gradient-to-br from-green-100 to-emerald-100 w-16 h-16 rounded-full flex items-center justify-center shadow-lg">
+                    <Upload className="h-8 w-8 text-green-600" />
+                  </div>
+                  <div>
+                    <h3 className="text-2xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
+                      📁 File Upload Tracking
+                    </h3>
+                    <p className="text-gray-600 text-lg">Track who uploaded which files</p>
+                    <div className="flex items-center gap-2 mt-2">
+                      <div className="w-2 h-2 bg-green-400 rounded-full animate-ping"></div>
+                      <span className="text-sm text-green-600 font-medium">
+                        {fileUploads.length} files tracked
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <div className="flex flex-col items-center gap-2">
+                  <p className="text-sm font-bold text-green-600 animate-bounce">Click to {isExpanded('file-uploads') ? 'Close' : 'Open'}</p>
+                  <div className="transition-transform duration-300">
+                    {isExpanded('file-uploads') ? (
+                      <ChevronDown className="h-8 w-8 text-green-600 animate-pulse" />
+                    ) : (
+                      <ChevronRight className="h-8 w-8 text-green-600 animate-pulse" />
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className={`transition-all duration-500 ease-in-out ${isExpanded('file-uploads') ? 'max-h-[800px] opacity-100' : 'max-h-0 opacity-0'} overflow-hidden`}>
+              <div className="p-6 bg-white">
+                {fileUploads.length === 0 ? (
+                  <div className="text-center py-10 text-gray-500">
+                    No file uploads tracked yet.
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-gray-200 rounded-xl overflow-hidden shadow-lg">
+                      <thead className="bg-gradient-to-r from-green-50 to-emerald-50">
+                        <tr>
+                          <th scope="col" className="px-6 py-3 text-left text-xs font-bold text-green-600 uppercase tracking-wider">File Name</th>
+                          <th scope="col" className="px-6 py-3 text-left text-xs font-bold text-green-600 uppercase tracking-wider">Uploader Name</th>
+                          <th scope="col" className="px-6 py-3 text-left text-xs font-bold text-green-600 uppercase tracking-wider">Uploader IP</th>
+                          <th scope="col" className="px-6 py-3 text-left text-xs font-bold text-green-600 uppercase tracking-wider">Upload Time</th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-gray-200">
+                        {fileUploads.map((upload) => (
+                          <tr key={upload.fileId}>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{upload.fileName}</td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{upload.uploaderName}</td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{upload.uploaderIP}</td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                              {new Date(upload.uploadedAt).toLocaleString()}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Link Upload Tracking Section */}
+          <div className="mb-8 border border-purple-200 rounded-2xl overflow-hidden shadow-xl transition-all duration-300">
+            <div 
+              className="bg-gradient-to-r from-purple-50 to-indigo-50 p-6 cursor-pointer hover:from-purple-100 hover:to-indigo-100 transition-all duration-300 border-b border-purple-200"
+              onClick={() => toggleSection('link-uploads')}
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="bg-gradient-to-br from-purple-100 to-indigo-100 w-16 h-16 rounded-full flex items-center justify-center shadow-lg">
+                    <Link className="h-8 w-8 text-purple-600" />
+                  </div>
+                  <div>
+                    <h3 className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">
+                      🔗 Link Upload Tracking
+                    </h3>
+                    <p className="text-gray-600 text-lg">Track who uploaded which links</p>
+                    <div className="flex items-center gap-2 mt-2">
+                      <div className="w-2 h-2 bg-purple-400 rounded-full animate-ping"></div>
+                      <span className="text-sm text-purple-600 font-medium">
+                        {linkUploads.length} links tracked
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <div className="flex flex-col items-center gap-2">
+                  <p className="text-sm font-bold text-purple-600 animate-bounce">Click to {isExpanded('link-uploads') ? 'Close' : 'Open'}</p>
+                  <div className="transition-transform duration-300">
+                    {isExpanded('link-uploads') ? (
+                      <ChevronDown className="h-8 w-8 text-purple-600 animate-pulse" />
+                    ) : (
+                      <ChevronRight className="h-8 w-8 text-purple-600 animate-pulse" />
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className={`transition-all duration-500 ease-in-out ${isExpanded('link-uploads') ? 'max-h-[800px] opacity-100' : 'max-h-0 opacity-0'} overflow-hidden`}>
+              <div className="p-6 bg-white">
+                {linkUploads.length === 0 ? (
+                  <div className="text-center py-10 text-gray-500">
+                    No link uploads tracked yet.
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-gray-200 rounded-xl overflow-hidden shadow-lg">
+                      <thead className="bg-gradient-to-r from-purple-50 to-indigo-50">
+                        <tr>
+                          <th scope="col" className="px-6 py-3 text-left text-xs font-bold text-purple-600 uppercase tracking-wider">Link Title</th>
+                          <th scope="col" className="px-6 py-3 text-left text-xs font-bold text-purple-600 uppercase tracking-wider">Uploader Name</th>
+                          <th scope="col" className="px-6 py-3 text-left text-xs font-bold text-purple-600 uppercase tracking-wider">Uploader IP</th>
+                          <th scope="col" className="px-6 py-3 text-left text-xs font-bold text-purple-600 uppercase tracking-wider">Upload Time</th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-gray-200">
+                        {linkUploads.map((upload) => (
+                          <tr key={upload.linkId}>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{upload.linkTitle}</td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{upload.uploaderName}</td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{upload.uploaderIP}</td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                              {new Date(upload.uploadedAt).toLocaleString()}
                             </td>
                           </tr>
                         ))}

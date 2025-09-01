@@ -176,6 +176,7 @@ io.on('connection', (socket) => {
   // Chat room management
   socket.on('join-chat', (data) => {
     const { username, password } = data;
+    const clientIP = socket.handshake.address;
 
     // Authenticate with username and chat password
     if (password !== getChatPassword()) {
@@ -190,19 +191,34 @@ io.on('connection', (socket) => {
       return;
     }
 
-    chatUsers.set(socket.id, { username, joinedAt: Date.now() });
+    chatUsers.set(socket.id, { 
+      username, 
+      ip: clientIP,
+      joinedAt: Date.now() 
+    });
     socket.join('main-chat');
 
     // Send recent message history to new user
     socket.emit('message-history', messageHistory.slice(-100));
 
-    // Notify others about new user
-    socket.to('main-chat').emit('user-joined', { username });
+    // Notify others about new user with IP
+    socket.to('main-chat').emit('user-joined', { 
+      username, 
+      ip: clientIP,
+      message: `${username} (${clientIP}) joined the chat`
+    });
 
-    // Send current user count
+    // Send current user count and online users with IPs
+    const onlineUsers = Array.from(chatUsers.values()).map(user => ({
+      username: user.username,
+      ip: user.ip,
+      joinedAt: user.joinedAt
+    }));
+    
     io.to('main-chat').emit('user-count', chatUsers.size);
+    io.to('main-chat').emit('online-users', onlineUsers);
 
-    log(`User ${username} joined chat`);
+    log(`User ${username} (${clientIP}) joined chat`);
   });
 
   socket.on('send-message', (data) => {
@@ -333,9 +349,22 @@ io.on('connection', (socket) => {
 
     if (user) {
       chatUsers.delete(socket.id);
-      socket.to('main-chat').emit('user-left', { username: user.username });
+      socket.to('main-chat').emit('user-left', { 
+        username: user.username,
+        ip: user.ip,
+        message: `${user.username} (${user.ip}) left the chat`
+      });
+      
+      // Send updated online users list
+      const onlineUsers = Array.from(chatUsers.values()).map(u => ({
+        username: u.username,
+        ip: u.ip,
+        joinedAt: u.joinedAt
+      }));
+      
       io.to('main-chat').emit('user-count', chatUsers.size);
-      log(`User ${user.username} left chat`);
+      io.to('main-chat').emit('online-users', onlineUsers);
+      log(`User ${user.username} (${user.ip}) left chat`);
     }
   });
 });

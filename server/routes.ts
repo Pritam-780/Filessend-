@@ -57,6 +57,7 @@ let currentAnnouncement: {
 
 // Visitor tracking system
 interface Visitor {
+  id: string;
   ip: string;
   name?: string;
   firstVisit: string;
@@ -65,8 +66,30 @@ interface Visitor {
   visitCount: number;
 }
 
+// Persistent visitor storage
 let visitors = new Map<string, Visitor>();
+let allVisitorHistory = new Map<string, Visitor>(); // Persistent history
 let blockedIPs = new Set<string>();
+
+// File and link tracking with uploader info
+interface FileUploadRecord {
+  fileId: string;
+  fileName: string;
+  uploaderName: string;
+  uploaderIP: string;
+  uploadedAt: string;
+}
+
+interface LinkUploadRecord {
+  linkId: string;
+  linkTitle: string;
+  uploaderName: string;
+  uploaderIP: string;
+  uploadedAt: string;
+}
+
+let fileUploads = new Map<string, FileUploadRecord>();
+let linkUploads = new Map<string, LinkUploadRecord>();
 
 // Helper function for input validation
 function validateInput(input: string, maxLength: number): boolean {
@@ -158,22 +181,32 @@ export async function registerRoutes(app: Express, io?: SocketIOServer): Promise
       return res.status(400).json({ message: "Invalid name format" });
     }
 
+    const now = new Date().toISOString();
+    const visitorId = `${clientIP}-${Date.now()}`;
+
+    const visitorData: Visitor = {
+      id: visitorId,
+      ip: clientIP,
+      name: name.trim(),
+      firstVisit: now,
+      lastActive: now,
+      isBlocked: blockedIPs.has(clientIP),
+      visitCount: 1
+    };
+
+    // Store in both current visitors and persistent history
     if (visitors.has(clientIP)) {
-      const visitor = visitors.get(clientIP)!;
-      visitor.name = name.trim();
-      visitor.lastActive = new Date().toISOString();
-      visitors.set(clientIP, visitor);
+      const existing = visitors.get(clientIP)!;
+      existing.name = name.trim();
+      existing.lastActive = now;
+      existing.visitCount += 1;
+      visitors.set(clientIP, existing);
     } else {
-      const now = new Date().toISOString();
-      visitors.set(clientIP, {
-        ip: clientIP,
-        name: name.trim(),
-        firstVisit: now,
-        lastActive: now,
-        isBlocked: false,
-        visitCount: 1
-      });
+      visitors.set(clientIP, visitorData);
     }
+
+    // Always add to persistent history (never remove)
+    allVisitorHistory.set(visitorId, { ...visitorData });
 
     console.log(`Visitor registered: ${name} (${clientIP})`);
     res.json({ message: "Visitor registered successfully" });
@@ -269,6 +302,9 @@ export async function registerRoutes(app: Express, io?: SocketIOServer): Promise
     try {
       const { category, password } = req.body;
       const files = req.files as Express.Multer.File[];
+      const clientIP = req.ip || req.connection.remoteAddress || req.socket.remoteAddress || 
+        (req.connection.socket ? req.connection.socket.remoteAddress : null) || 
+        req.headers['x-forwarded-for']?.split(',')[0]?.trim() || 'unknown';
 
       // Verify password for file upload
       if (!password || password !== fileUploadPassword) {
@@ -282,6 +318,10 @@ export async function registerRoutes(app: Express, io?: SocketIOServer): Promise
       if (!category) {
         return res.status(400).json({ message: "Category is required" });
       }
+
+      // Get uploader info
+      const visitor = visitors.get(clientIP);
+      const uploaderName = visitor?.name || 'Anonymous';
 
       const uploadedFiles = [];
 
@@ -304,6 +344,16 @@ export async function registerRoutes(app: Express, io?: SocketIOServer): Promise
         const savedFile = await storage.createFile(fileData);
         uploadedFiles.push(savedFile);
 
+        // Track file upload with uploader info
+        const uploadRecord: FileUploadRecord = {
+          fileId: savedFile.id,
+          fileName: savedFile.originalName,
+          uploaderName,
+          uploaderIP: clientIP,
+          uploadedAt: savedFile.uploadedAt
+        };
+        fileUploads.set(savedFile.id, uploadRecord);
+
         // Broadcast file upload to all connected clients and chat room
         if (io) {
           const fileUploadData = {
@@ -312,13 +362,17 @@ export async function registerRoutes(app: Express, io?: SocketIOServer): Promise
             mimeType: savedFile.mimeType,
             size: savedFile.size,
             category: savedFile.category,
-            uploadedAt: savedFile.uploadedAt
+            uploadedAt: savedFile.uploadedAt,
+            uploaderName,
+            uploaderIP: clientIP
           };
           
           // Broadcast to general file system
           io.emit('file-uploaded', {
             file: savedFile,
-            message: `New file uploaded: ${file.originalname}`,
+            uploaderName,
+            uploaderIP: clientIP,
+            message: `New file uploaded by ${uploaderName} (${clientIP}): ${file.originalname}`,
             timestamp: new Date().toISOString()
           });
           
@@ -603,6 +657,9 @@ export async function registerRoutes(app: Express, io?: SocketIOServer): Promise
   app.post("/api/links/upload", (req, res) => {
     try {
       const { title, description, url, password } = req.body;
+      const clientIP = req.ip || req.connection.remoteAddress || req.socket.remoteAddress || 
+        (req.connection.socket ? req.connection.socket.remoteAddress : null) || 
+        req.headers['x-forwarded-for']?.split(',')[0]?.trim() || 'unknown';
 
       // Verify password for link upload
       if (!password || password !== "Ak47") {
@@ -624,19 +681,38 @@ export async function registerRoutes(app: Express, io?: SocketIOServer): Promise
         return res.status(400).json({ message: "Invalid input format or length" });
       }
 
+      // Get uploader info
+      const visitor = visitors.get(clientIP);
+      const uploaderName = visitor?.name || 'Anonymous';
+
       const newLink = {
         id: Date.now().toString(),
         title: title.trim(),
         description: description.trim(),
         url: url.trim(),
-        uploadedAt: new Date().toISOString()
+        uploadedAt: new Date().toISOString(),
+        uploaderName,
+        uploaderIP: clientIP
       };
 
       links.unshift(newLink); // Add to beginning of array
 
+      // Track link upload
+      const uploadRecord: LinkUploadRecord = {
+        linkId: newLink.id,
+        linkTitle: newLink.title,
+        uploaderName,
+        uploaderIP: clientIP,
+        uploadedAt: newLink.uploadedAt
+      };
+      linkUploads.set(newLink.id, uploadRecord);
+
       // Broadcast link upload to all connected clients
       if (io) {
-        io.emit('link-uploaded', newLink);
+        io.emit('link-uploaded', {
+          ...newLink,
+          message: `New link uploaded by ${uploaderName} (${clientIP}): ${title}`
+        });
       }
 
       res.json(newLink);
@@ -707,10 +783,14 @@ export async function registerRoutes(app: Express, io?: SocketIOServer): Promise
   // Admin visitor management endpoints
   app.get("/api/admin/visitors", (req, res) => {
     try {
-      const visitorList = Array.from(visitors.values()).sort((a, b) => 
+      const visitorList = Array.from(allVisitorHistory.values()).sort((a, b) => 
         new Date(b.lastActive).getTime() - new Date(a.lastActive).getTime()
       );
-      res.json({ visitors: visitorList });
+      res.json({ 
+        visitors: visitorList,
+        fileUploads: Array.from(fileUploads.values()),
+        linkUploads: Array.from(linkUploads.values())
+      });
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch visitors" });
     }
