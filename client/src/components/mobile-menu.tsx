@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { Link } from "wouter";
-import { X, Home, GraduationCap, BookOpen, Users, MessageCircle, Upload, FileText } from "lucide-react";
+import { X, Home, GraduationCap, BookOpen, Users, MessageCircle, Upload, FileText, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface MobileMenuProps {
@@ -130,6 +130,16 @@ export default function MobileMenu({
               <Upload className="h-5 w-5 mr-3" />
               Upload Your First Book
             </div>
+
+            <Link href="/admin">
+              <div
+                onClick={onClose}
+                className="flex items-center py-3 px-4 text-secondary hover:bg-gray-100 rounded-lg transition-colors font-medium cursor-pointer"
+              >
+                <Shield className="h-5 w-5 mr-3" />
+                Admin Panel
+              </div>
+            </Link>
           </nav>
         </div>
       </div>

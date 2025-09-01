@@ -38,6 +38,9 @@ const upload = multer({
   }
 });
 
+// Initialize system password (will be updated by admin)
+let systemPassword = "crazy_pritam";
+
 export async function registerRoutes(app: Express, io?: SocketIOServer): Promise<void> {
 
   // Get all files
@@ -197,7 +200,7 @@ export async function registerRoutes(app: Express, io?: SocketIOServer): Promise
       console.log('File deletion request:', { id, hasPassword: !!password });
 
       // Verify password for deletion
-      if (!password || password !== 'Ak47') {
+      if (!password || password !== systemPassword) {
         console.log('File deletion denied - invalid password');
         return res.status(403).json({ message: "Access denied. Invalid password required for deletion." });
       }
@@ -276,7 +279,7 @@ export async function registerRoutes(app: Express, io?: SocketIOServer): Promise
     try {
       const { title, description, url, password } = req.body;
 
-      if (password !== "Ak47") {
+      if (password !== systemPassword) {
         return res.status(403).json({ message: "Access denied. Invalid password." });
       }
 
@@ -320,12 +323,12 @@ export async function registerRoutes(app: Express, io?: SocketIOServer): Promise
       const { id } = req.params;
       const { password } = req.body;
 
-      if (!password || password !== 'Ak47') {
+      if (!password || password !== systemPassword) {
         return res.status(403).json({ message: "Access denied. Invalid password required for deletion." });
       }
 
       const linkIndex = links.findIndex(link => link.id === id);
-      
+
       if (linkIndex === -1) {
         return res.status(404).json({ message: "Link not found" });
       }
@@ -351,6 +354,42 @@ export async function registerRoutes(app: Express, io?: SocketIOServer): Promise
     } catch (error) {
       console.error('Link delete error:', error);
       res.status(500).json({ message: "Failed to delete link" });
+    }
+  });
+
+  // Admin password management routes
+  app.post("/api/admin/change-password", async (req, res) => {
+    try {
+      const { currentPassword, newPassword } = req.body;
+
+      if (!currentPassword || !newPassword) {
+        return res.status(400).json({ message: "Current password and new password are required" });
+      }
+
+      // Verify current password
+      if (currentPassword !== systemPassword) {
+        return res.status(403).json({ message: "Current password is incorrect" });
+      }
+
+      // Update system password
+      systemPassword = newPassword;
+
+      // Broadcast password change to all connected clients (optional)
+      if (io) {
+        io.emit('system-password-changed', {
+          message: 'System password has been updated by admin',
+          timestamp: new Date().toISOString()
+        });
+        console.log('System password changed by admin');
+      }
+
+      res.json({
+        message: "Password changed successfully",
+        changedAt: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error('Password change error:', error);
+      res.status(500).json({ message: "Failed to change password" });
     }
   });
 

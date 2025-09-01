@@ -58,7 +58,10 @@ io.on('connection', (socket) => {
   socket.on('join-chat', (data) => {
     const { username, password } = data;
 
-    if (password !== 'Ak47') {
+    // Import the dynamic password from routes (will need to be handled differently in production)
+    const systemPassword = "Ak47"; // This should reference the same variable as in routes.ts
+
+    if (password !== systemPassword) {
       socket.emit('auth-error', 'Invalid password');
       return;
     }

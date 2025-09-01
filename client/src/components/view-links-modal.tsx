@@ -144,7 +144,8 @@ export default function ViewLinksModal({ isOpen, onClose, links, onDelete }: Vie
         isOpen={!!deleteTarget}
         onClose={() => setDeleteTarget(null)}
         onPasswordSubmit={(password) => {
-          if (deleteTarget && password === "Ak47") {
+          if (deleteTarget) {
+            // The password verification will be handled by the API
             handleDelete(deleteTarget.id, password);
             setDeleteTarget(null);
           } else {

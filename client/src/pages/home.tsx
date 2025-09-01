@@ -327,7 +327,8 @@ Your colorful digital library for organizing and accessing academic books, relax
         isOpen={!!deleteTarget}
         onClose={() => setDeleteTarget(null)}
         onPasswordSubmit={(password) => {
-          if (deleteTarget && password === "Ak47") {
+          if (deleteTarget) {
+            // The password verification will be handled by the API
             fileStorage.deleteFileFromAPI(deleteTarget.id); // Call API to delete file
             setDeleteTarget(null);
             toast({
