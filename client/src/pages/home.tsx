@@ -172,6 +172,12 @@ export default function Home() {
     setSearchQuery(query);
   };
 
+  // Handler for previewing files
+  const handlePreview = (file: FileData) => {
+    setPreviewFile(file);
+  };
+
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50 animate-fadeIn">
@@ -297,7 +303,7 @@ Your colorful digital library for organizing and accessing academic books, relax
               <FileCard
                 key={file.id}
                 file={file}
-                onPreview={setPreviewFile}
+                onPreview={handlePreview}
                 onDelete={() => setDeleteTarget(file)}
               />
             ))

@@ -13,12 +13,18 @@ interface FileCardProps {
   onDelete?: () => void;
 }
 
-export default function FileCard({ file, onDelete }: FileCardProps) {
+export default function FileCard({ file, onPreview, onDelete }: FileCardProps) {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const filename = file?.filename || '';
   const isImage = filename.toLowerCase().match(/\.(jpg|jpeg|png|gif|bmp|webp)$/);
   const isPdf = filename.toLowerCase().endsWith('.pdf');
   const isExcel = filename.toLowerCase().match(/\.(xlsx|xls|csv)$/);
+
+  const handlePreview = () => {
+    if (file && onPreview) {
+      onPreview(file);
+    }
+  };
 
   const getFileIcon = () => {
     const mimeType = file?.mimeType || '';
@@ -106,10 +112,10 @@ export default function FileCard({ file, onDelete }: FileCardProps) {
         </p>
         <div className="flex gap-2">
           <Button 
-            onClick={() => file && onPreview(file)}
+            onClick={handlePreview}
             className="flex-1 bg-primary text-white hover:bg-primary/90 text-sm font-medium"
             size="sm"
-            disabled={!file}
+            disabled={!file || !onPreview}
           >
             <Eye className="h-3 w-3 mr-1" />
             <span className="hidden sm:inline">Preview</span>

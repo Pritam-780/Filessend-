@@ -6,7 +6,6 @@ import Home from "@/pages/home";
 import Category from "@/pages/category";
 import Admin from "@/pages/admin";
 import AdminDashboard from "@/pages/admin-dashboard";
-import AdminDashboard from "@/pages/admin-dashboard";
 import NotFound from "@/pages/not-found";
 import { NoSignal } from "@/components/no-signal";
 import { queryClient } from "@/lib/queryClient";
