@@ -64,6 +64,11 @@ export function getChatPassword(): string {
 
 export async function registerRoutes(app: Express, io?: SocketIOServer): Promise<void> {
 
+  // Health check endpoint
+  app.get("/api/health", (req, res) => {
+    res.json({ status: "OK", timestamp: new Date().toISOString() });
+  });
+
   // Website status endpoint (accessible to all)
   app.get("/api/website/status", (req, res) => {
     res.json({ isOnline: isWebsiteOnline });
@@ -105,9 +110,10 @@ export async function registerRoutes(app: Express, io?: SocketIOServer): Promise
   app.get("/api/files", async (req, res) => {
     try {
       const files = await storage.getFiles();
-      res.json(files);
+      res.json(files || []);
     } catch (error) {
-      res.status(500).json({ message: "Failed to fetch files" });
+      console.error('Get files error:', error);
+      res.status(500).json({ message: "Failed to fetch files", error: error.message });
     }
   });
 
@@ -116,9 +122,10 @@ export async function registerRoutes(app: Express, io?: SocketIOServer): Promise
     try {
       const { category } = req.params;
       const files = await storage.getFilesByCategory(category);
-      res.json(files);
+      res.json(files || []);
     } catch (error) {
-      res.status(500).json({ message: "Failed to fetch files by category" });
+      console.error('Get files by category error:', error);
+      res.status(500).json({ message: "Failed to fetch files by category", error: error.message });
     }
   });
 
@@ -132,9 +139,10 @@ export async function registerRoutes(app: Express, io?: SocketIOServer): Promise
         category as string,
         type as string
       );
-      res.json(files);
+      res.json(files || []);
     } catch (error) {
-      res.status(500).json({ message: "Failed to search files" });
+      console.error('Search files error:', error);
+      res.status(500).json({ message: "Failed to search files", error: error.message });
     }
   });
 
