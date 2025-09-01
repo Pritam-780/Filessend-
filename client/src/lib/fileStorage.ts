@@ -226,9 +226,8 @@ export class LocalFileStorage {
 
   getFileUrl(file: FileData): string {
     if (file.data) {
-      // LocalStorage file
-      const blob = this.getFileBlob(file);
-      return URL.createObjectURL(blob);
+      // LocalStorage file - create proper data URL
+      return `data:${file.mimeType};base64,${file.data}`;
     } else {
       // Backend file
       return this.getFilePreviewUrl(file.id);
