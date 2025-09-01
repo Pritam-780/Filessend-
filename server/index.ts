@@ -30,7 +30,7 @@ app.use(helmet({
 // Rate limiting
 const generalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 500, // Increased from 100 to 500 requests per windowMs
+  max: 2000, // Increased to 2000 requests per 15 minutes
   message: "Too many requests from this IP, please try again later.",
   standardHeaders: true,
   legacyHeaders: false,
@@ -38,7 +38,7 @@ const generalLimiter = rateLimit({
 
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 20, // Increased from 5 to 20 auth attempts per windowMs
+  max: 100, // Increased to 100 auth attempts per 15 minutes
   message: "Too many authentication attempts, please try again later.",
   standardHeaders: true,
   legacyHeaders: false,
@@ -46,13 +46,16 @@ const authLimiter = rateLimit({
 
 const uploadLimiter = rateLimit({
   windowMs: 60 * 1000, // 1 minute
-  max: 50, // Increased from 10 to 50 uploads per minute
+  max: 200, // Increased to 200 uploads per minute
   message: "Too many upload attempts, please try again later.",
   standardHeaders: true,
   legacyHeaders: false,
 });
 
-app.use(generalLimiter);
+// Only apply rate limiting in production
+if (process.env.NODE_ENV === "production") {
+  app.use(generalLimiter);
+}
 
 // Configure CORS for Socket.IO
 app.use(cors({
