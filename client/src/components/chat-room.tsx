@@ -474,7 +474,20 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
 
   const renderFileAttachment = (attachment: any) => {
     const file = files.find(f => f.id === attachment.id);
-    if (!file) return null;
+    if (!file) {
+      // File has been deleted - show a deleted file indicator
+      return (
+        <div className="mt-2 p-3 bg-gray-100 bg-opacity-20 rounded-lg max-w-xs border border-gray-300">
+          <div className="flex items-center gap-2 opacity-60">
+            <FileText className="h-4 w-4 text-gray-500" />
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-gray-500 line-through">File deleted</p>
+              <p className="text-xs text-gray-400">This file has been permanently removed</p>
+            </div>
+          </div>
+        </div>
+      );
+    }
 
     if (attachment.mimeType.startsWith('image/')) {
       const imageUrl = `/api/files/${attachment.id}/download`;
