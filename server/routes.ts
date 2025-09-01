@@ -199,13 +199,14 @@ export async function registerRoutes(app: Express, io?: SocketIOServer): Promise
       // Verify password for deletion
       if (!password || password !== 'Ak47') {
         console.log('File deletion denied - invalid password');
-        return res.status(403).json({ message: "Access denied. Invalid credentials." });
+        return res.status(403).json({ message: "Access denied. Invalid password required for deletion." });
       }
 
       const file = await storage.getFile(id);
 
       if (!file) {
-        return res.status(404).json({ message: "File not found" });
+        console.log(`File not found in database: ${id}`);
+        return res.status(404).json({ message: "File not found in database" });
       }
 
       const filePath = path.join(uploadDir, file.filename);
@@ -214,17 +215,21 @@ export async function registerRoutes(app: Express, io?: SocketIOServer): Promise
       const deletedFromStorage = await storage.deleteFile(id);
 
       if (!deletedFromStorage) {
-        return res.status(500).json({ message: "Failed to delete from storage" });
+        console.log(`Failed to delete from storage: ${id}`);
+        return res.status(500).json({ message: "Failed to delete from database storage" });
       }
 
       // Delete physical file from disk
       if (fs.existsSync(filePath)) {
         try {
           fs.unlinkSync(filePath);
-          console.log(`Physical file deleted: ${filePath}`);
+          console.log(`Physical file permanently deleted: ${filePath}`);
         } catch (fsError) {
           console.error('Failed to delete physical file:', fsError);
+          // Continue execution - database deletion was successful
         }
+      } else {
+        console.log(`Physical file not found (already deleted): ${filePath}`);
       }
 
       // Broadcast file deletion to all connected clients (chat users and website users)
@@ -233,17 +238,18 @@ export async function registerRoutes(app: Express, io?: SocketIOServer): Promise
           fileId: id,
           filename: file.originalName
         });
-        console.log(`File deletion broadcasted: ${file.originalName}`);
+        console.log(`File deletion broadcasted to all clients: ${file.originalName}`);
       }
 
       res.json({
-        message: "File deleted successfully",
+        message: "File permanently deleted from server and database",
         fileId: id,
-        filename: file.originalName
+        filename: file.originalName,
+        deletedAt: new Date().toISOString()
       });
     } catch (error) {
       console.error('Delete error:', error);
-      res.status(500).json({ message: "Failed to delete file" });
+      res.status(500).json({ message: "Failed to delete file permanently" });
     }
   });
 
