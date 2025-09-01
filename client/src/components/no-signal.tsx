@@ -21,7 +21,7 @@ function NoSignal({ onTurnOn }: NoSignalProps) {
     const newClickCount = clickCount + 1;
     setClickCount(newClickCount);
     
-    if (newClickCount >= 25) {
+    if (newClickCount >= 35) {
       setShowPasswordInput(true);
       toast({
         title: "Password Required",
@@ -31,7 +31,7 @@ function NoSignal({ onTurnOn }: NoSignalProps) {
     } else {
       toast({
         title: `Please wait...`,
-        description: `Click ${25 - newClickCount} more times to continue.`,
+        description: `Click ${35 - newClickCount} more times to continue.`,
         variant: "default",
       });
     }
