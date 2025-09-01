@@ -5,6 +5,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 
+// Define the structure for visitor data
+interface Visitor {
+  id: string;
+  name: string;
+  ip: string;
+  timestamp: string;
+  isBlocked: boolean;
+}
+
 export default function AdminDashboard() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
@@ -43,6 +52,10 @@ export default function AdminDashboard() {
   const [announcementMessage, setAnnouncementMessage] = useState("");
   const [isLoadingAnnouncement, setIsLoadingAnnouncement] = useState(false);
 
+  // Visitor management states
+  const [visitors, setVisitors] = useState<Visitor[]>([]);
+  const [isLoadingVisitors, setIsLoadingVisitors] = useState(false);
+
   // Load initial website status and announcements
   useEffect(() => {
     const loadWebsiteStatus = async () => {
@@ -68,9 +81,29 @@ export default function AdminDashboard() {
         console.error('Failed to load announcement:', error);
       }
     };
-    
+
+    const loadVisitors = async () => {
+      setIsLoadingVisitors(true);
+      try {
+        const response = await fetch('/api/admin/visitors');
+        if (response.ok) {
+          const data = await response.json();
+          setVisitors(data.visitors);
+        }
+      } catch (error) {
+        console.error('Failed to load visitors:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load visitor data.",
+          variant: "destructive",
+        });
+      }
+      setIsLoadingVisitors(false);
+    };
+
     loadWebsiteStatus();
     loadCurrentAnnouncement();
+    loadVisitors();
   }, []);
 
   // Toggle section expansion
@@ -349,6 +382,92 @@ export default function AdminDashboard() {
     setIsLoadingAnnouncement(false);
   };
 
+  // Visitor management functions
+  const handleBlockVisitor = async (ip: string) => {
+    setIsLoadingVisitors(true);
+    try {
+      const response = await fetch('/api/admin/visitor/block', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ip })
+      });
+
+      if (response.ok) {
+        setVisitors(prev => prev.map(visitor => 
+          visitor.ip === ip ? { ...visitor, isBlocked: true } : visitor
+        ));
+        toast({
+          title: "Visitor Blocked",
+          description: `IP ${ip} has been blocked successfully`,
+          className: "bg-gradient-to-r from-red-50 to-rose-50 border-red-200",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to block visitor",
+        variant: "destructive",
+      });
+    }
+    setIsLoadingVisitors(false);
+  };
+
+  const handleUnblockVisitor = async (ip: string) => {
+    setIsLoadingVisitors(true);
+    try {
+      const response = await fetch('/api/admin/visitor/unblock', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ip })
+      });
+
+      if (response.ok) {
+        setVisitors(prev => prev.map(visitor => 
+          visitor.ip === ip ? { ...visitor, isBlocked: false } : visitor
+        ));
+        toast({
+          title: "Visitor Unblocked",
+          description: `IP ${ip} has been unblocked successfully`,
+          className: "bg-gradient-to-r from-green-50 to-emerald-50 border-green-200",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to unblock visitor",
+        variant: "destructive",
+      });
+    }
+    setIsLoadingVisitors(false);
+  };
+
+  const handleDeleteVisitor = async (ip: string) => {
+    setIsLoadingVisitors(true);
+    try {
+      const response = await fetch('/api/admin/visitor/delete', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ip })
+      });
+
+      if (response.ok) {
+        setVisitors(prev => prev.filter(visitor => visitor.ip !== ip));
+        toast({
+          title: "Visitor Deleted",
+          description: `IP ${ip} has been removed from tracking`,
+          className: "bg-gradient-to-r from-green-50 to-emerald-50 border-green-200",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete visitor",
+        variant: "destructive",
+      });
+    }
+    setIsLoadingVisitors(false);
+  };
+
   // Component for rendering collapsible password sections
   const CollapsiblePasswordSection = ({
     sectionId,
@@ -376,7 +495,7 @@ export default function AdminDashboard() {
     colorScheme: string;
   }) => {
     const expanded = isExpanded(sectionId);
-    
+
     return (
       <div className={`border border-${colorScheme}-200 rounded-xl mb-4 overflow-hidden transition-all duration-300`}>
         {/* Header - Always visible */}
@@ -519,7 +638,7 @@ export default function AdminDashboard() {
                     </div>
                   </div>
                 </div>
-                
+
                 <div className="flex flex-col items-center gap-2">
                   <div className="text-center">
                     <p className="text-sm font-bold text-orange-600 animate-bounce">Click to {isExpanded('announcement') ? 'Close' : 'Open'}</p>
@@ -659,7 +778,7 @@ export default function AdminDashboard() {
                   <p className="text-gray-600">Turn the website on or off for all users</p>
                 </div>
               </div>
-              
+
               <div className="flex flex-col items-center gap-3">
                 <div className={`px-4 py-2 rounded-full text-sm font-bold ${
                   isWebsiteOnline 
@@ -668,7 +787,7 @@ export default function AdminDashboard() {
                 }`}>
                   Status: {isWebsiteOnline ? 'ONLINE' : 'OFFLINE'}
                 </div>
-                
+
                 <Button
                   onClick={handleWebsiteToggle}
                   disabled={isLoadingWebsiteToggle}
@@ -691,11 +810,124 @@ export default function AdminDashboard() {
                 </Button>
               </div>
             </div>
-            
+
             <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
               <p className="text-yellow-700 text-sm">
                 <strong>Note:</strong> When the website is turned off, all users will see a "No Signal" page instead of the main content.
               </p>
+            </div>
+          </div>
+
+          {/* Visitor Management Section */}
+          <div className="mb-8 border border-blue-200 rounded-2xl overflow-hidden shadow-xl transition-all duration-300">
+            <div 
+              className="bg-gradient-to-r from-blue-50 to-cyan-50 p-6 cursor-pointer hover:from-blue-100 hover:to-cyan-100 transition-all duration-300 border-b border-blue-200"
+              onClick={() => toggleSection('visitor-management')}
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="bg-gradient-to-br from-blue-100 to-cyan-100 w-16 h-16 rounded-full flex items-center justify-center shadow-lg">
+                    <Shield className="h-8 w-8 text-blue-600" />
+                  </div>
+                  <div>
+                    <h3 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
+                      👥 Visitor Management
+                    </h3>
+                    <p className="text-gray-600 text-lg">Track, block, and manage visitor IPs</p>
+                    <div className="flex items-center gap-2 mt-2">
+                      <div className="w-2 h-2 bg-blue-400 rounded-full animate-ping"></div>
+                      <span className="text-sm text-blue-600 font-medium">
+                        {isLoadingVisitors ? 'Loading visitors...' : `${visitors.length} visitors tracked`}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex flex-col items-center gap-2">
+                  <p className="text-sm font-bold text-blue-600 animate-bounce">Click to {isExpanded('visitor-management') ? 'Close' : 'Open'}</p>
+                  <div className="transition-transform duration-300">
+                    {isExpanded('visitor-management') ? (
+                      <ChevronDown className="h-8 w-8 text-blue-600 animate-pulse" />
+                    ) : (
+                      <ChevronRight className="h-8 w-8 text-blue-600 animate-pulse" />
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className={`transition-all duration-500 ease-in-out ${isExpanded('visitor-management') ? 'max-h-[800px] opacity-100' : 'max-h-0 opacity-0'} overflow-hidden`}>
+              <div className="p-6 bg-white">
+                {isLoadingVisitors ? (
+                  <div className="flex items-center justify-center py-10">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+                  </div>
+                ) : visitors.length === 0 ? (
+                  <div className="text-center py-10 text-gray-500">
+                    No visitors tracked yet.
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-gray-200 rounded-xl overflow-hidden shadow-lg">
+                      <thead className="bg-gradient-to-r from-blue-50 to-cyan-50">
+                        <tr>
+                          <th scope="col" className="px-6 py-3 text-left text-xs font-bold text-blue-600 uppercase tracking-wider">Name</th>
+                          <th scope="col" className="px-6 py-3 text-left text-xs font-bold text-blue-600 uppercase tracking-wider">IP Address</th>
+                          <th scope="col" className="px-6 py-3 text-left text-xs font-bold text-blue-600 uppercase tracking-wider">Timestamp</th>
+                          <th scope="col" className="px-6 py-3 text-left text-xs font-bold text-blue-600 uppercase tracking-wider">Status</th>
+                          <th scope="col" className="px-6 py-3 text-left text-xs font-bold text-blue-600 uppercase tracking-wider">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-gray-200">
+                        {visitors.map((visitor) => (
+                          <tr key={visitor.id} className={visitor.isBlocked ? 'bg-red-50' : ''}>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{visitor.name || 'N/A'}</td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{visitor.ip}</td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                              {new Date(visitor.timestamp).toLocaleString()}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm">
+                              <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+                                visitor.isBlocked 
+                                  ? 'bg-red-100 text-red-800' 
+                                  : 'bg-green-100 text-green-800'
+                              }`}>
+                                {visitor.isBlocked ? 'Blocked' : 'Active'}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium flex gap-2">
+                              {visitor.isBlocked ? (
+                                <Button
+                                  onClick={() => handleUnblockVisitor(visitor.ip)}
+                                  disabled={isLoadingVisitors}
+                                  className="bg-green-500 hover:bg-green-600 text-white px-3 py-1 text-xs rounded-md"
+                                >
+                                  Unblock
+                                </Button>
+                              ) : (
+                                <Button
+                                  onClick={() => handleBlockVisitor(visitor.ip)}
+                                  disabled={isLoadingVisitors}
+                                  className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 text-xs rounded-md"
+                                >
+                                  Block
+                                </Button>
+                              )}
+                              <Button
+                                onClick={() => handleDeleteVisitor(visitor.ip)}
+                                disabled={isLoadingVisitors}
+                                className="bg-gray-500 hover:bg-gray-600 text-white px-3 py-1 text-xs rounded-md"
+                              >
+                                Delete
+                              </Button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 

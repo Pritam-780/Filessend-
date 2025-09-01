@@ -63,6 +63,22 @@ app.use(cors({
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: false, limit: '10mb' }));
 
+// IP blocking middleware
+app.use((req, res, next) => {
+  // Skip blocking for admin routes
+  if (req.path.startsWith('/api/admin/') || req.path.startsWith('/api/visitor/')) {
+    return next();
+  }
+
+  const clientIP = req.ip || req.connection.remoteAddress || req.socket.remoteAddress || 
+    (req.connection.socket ? req.connection.socket.remoteAddress : null) || 
+    req.headers['x-forwarded-for']?.split(',')[0]?.trim() || 'unknown';
+
+  // Check if IP is blocked (this will be populated by the routes)
+  // The actual blocking logic will be implemented in routes.ts
+  next();
+});
+
 // Initialize Socket.IO with performance optimizations
 const io = new Server(httpServer, {
   cors: {

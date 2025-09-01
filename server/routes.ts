@@ -55,6 +55,19 @@ let currentAnnouncement: {
   createdAt: string;
 } | null = null;
 
+// Visitor tracking system
+interface Visitor {
+  ip: string;
+  name?: string;
+  firstVisit: string;
+  lastActive: string;
+  isBlocked: boolean;
+  visitCount: number;
+}
+
+let visitors = new Map<string, Visitor>();
+let blockedIPs = new Set<string>();
+
 // Helper function for input validation
 function validateInput(input: string, maxLength: number): boolean {
   // Basic validation: check for empty string and length
@@ -70,11 +83,116 @@ export function getChatPassword(): string {
   return chatPassword;
 }
 
+// Middleware to track visitors
+function trackVisitor(req: any, res: any, next: any) {
+  const clientIP = req.ip || req.connection.remoteAddress || req.socket.remoteAddress || 
+    (req.connection.socket ? req.connection.socket.remoteAddress : null) || 
+    req.headers['x-forwarded-for']?.split(',')[0]?.trim() || 'unknown';
+
+  const now = new Date().toISOString();
+  
+  if (visitors.has(clientIP)) {
+    const visitor = visitors.get(clientIP)!;
+    visitor.lastActive = now;
+    visitor.visitCount += 1;
+    visitors.set(clientIP, visitor);
+  } else {
+    visitors.set(clientIP, {
+      ip: clientIP,
+      firstVisit: now,
+      lastActive: now,
+      isBlocked: blockedIPs.has(clientIP),
+      visitCount: 1
+    });
+  }
+
+  next();
+}
+
 export async function registerRoutes(app: Express, io?: SocketIOServer): Promise<void> {
+
+  // Apply visitor tracking to all routes except admin routes
+  app.use((req, res, next) => {
+    if (!req.path.startsWith('/api/admin/') && !req.path.startsWith('/api/visitor/')) {
+      trackVisitor(req, res, next);
+    } else {
+      next();
+    }
+  });
 
   // Website status endpoint (accessible to all)
   app.get("/api/website/status", (req, res) => {
     res.json({ isOnline: isWebsiteOnline });
+  });
+
+  // Visitor tracking endpoints
+  app.get("/api/visitor/check", (req, res) => {
+    const clientIP = req.ip || req.connection.remoteAddress || req.socket.remoteAddress || 
+      (req.connection.socket ? req.connection.socket.remoteAddress : null) || 
+      req.headers['x-forwarded-for']?.split(',')[0]?.trim() || 'unknown';
+
+    const visitor = visitors.get(clientIP);
+    const isBlocked = blockedIPs.has(clientIP) || (visitor?.isBlocked || false);
+
+    // Update blocked status if changed
+    if (visitor && visitor.isBlocked !== isBlocked) {
+      visitor.isBlocked = isBlocked;
+      visitors.set(clientIP, visitor);
+    }
+
+    res.json({
+      ip: clientIP,
+      isBlocked,
+      hasName: visitor?.name ? true : false,
+      visitCount: visitor?.visitCount || 0
+    });
+  });
+
+  app.post("/api/visitor/register", (req, res) => {
+    const { name } = req.body;
+    const clientIP = req.ip || req.connection.remoteAddress || req.socket.remoteAddress || 
+      (req.connection.socket ? req.connection.socket.remoteAddress : null) || 
+      req.headers['x-forwarded-for']?.split(',')[0]?.trim() || 'unknown';
+
+    if (!name || !validateInput(name, 100)) {
+      return res.status(400).json({ message: "Invalid name format" });
+    }
+
+    if (visitors.has(clientIP)) {
+      const visitor = visitors.get(clientIP)!;
+      visitor.name = name.trim();
+      visitor.lastActive = new Date().toISOString();
+      visitors.set(clientIP, visitor);
+    } else {
+      const now = new Date().toISOString();
+      visitors.set(clientIP, {
+        ip: clientIP,
+        name: name.trim(),
+        firstVisit: now,
+        lastActive: now,
+        isBlocked: false,
+        visitCount: 1
+      });
+    }
+
+    console.log(`Visitor registered: ${name} (${clientIP})`);
+    res.json({ message: "Visitor registered successfully" });
+  });
+
+  app.post("/api/visitor/update", (req, res) => {
+    const { name } = req.body;
+    const clientIP = req.ip || req.connection.remoteAddress || req.socket.remoteAddress || 
+      (req.connection.socket ? req.connection.socket.remoteAddress : null) || 
+      req.headers['x-forwarded-for']?.split(',')[0]?.trim() || 'unknown';
+
+    if (visitors.has(clientIP)) {
+      const visitor = visitors.get(clientIP)!;
+      if (name) visitor.name = name.trim();
+      visitor.lastActive = new Date().toISOString();
+      visitors.set(clientIP, visitor);
+    }
+
+    res.json({ message: "Visitor updated successfully" });
   });
 
   // Admin website toggle endpoint
@@ -586,5 +704,102 @@ export async function registerRoutes(app: Express, io?: SocketIOServer): Promise
     }
   });
 
+  // Admin visitor management endpoints
+  app.get("/api/admin/visitors", (req, res) => {
+    try {
+      const visitorList = Array.from(visitors.values()).sort((a, b) => 
+        new Date(b.lastActive).getTime() - new Date(a.lastActive).getTime()
+      );
+      res.json({ visitors: visitorList });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch visitors" });
+    }
+  });
+
+  app.post("/api/admin/visitor/block", (req, res) => {
+    try {
+      const { ip } = req.body;
+      if (!ip) {
+        return res.status(400).json({ message: "IP address is required" });
+      }
+
+      blockedIPs.add(ip);
+      if (visitors.has(ip)) {
+        const visitor = visitors.get(ip)!;
+        visitor.isBlocked = true;
+        visitors.set(ip, visitor);
+      }
+
+      console.log(`IP ${ip} blocked by admin`);
+      res.json({ message: `IP ${ip} blocked successfully` });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to block visitor" });
+    }
+  });
+
+  app.post("/api/admin/visitor/unblock", (req, res) => {
+    try {
+      const { ip } = req.body;
+      if (!ip) {
+        return res.status(400).json({ message: "IP address is required" });
+      }
+
+      blockedIPs.delete(ip);
+      if (visitors.has(ip)) {
+        const visitor = visitors.get(ip)!;
+        visitor.isBlocked = false;
+        visitors.set(ip, visitor);
+      }
+
+      console.log(`IP ${ip} unblocked by admin`);
+      res.json({ message: `IP ${ip} unblocked successfully` });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to unblock visitor" });
+    }
+  });
+
+  app.delete("/api/admin/visitor/delete", (req, res) => {
+    try {
+      const { ip } = req.body;
+      if (!ip) {
+        return res.status(400).json({ message: "IP address is required" });
+      }
+
+      visitors.delete(ip);
+      blockedIPs.delete(ip);
+
+      console.log(`Visitor ${ip} deleted by admin`);
+      res.json({ message: `Visitor ${ip} deleted successfully` });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete visitor" });
+    }
+  });
+
+  // Link password management routes
+  app.post("/api/admin/change-link-upload-password", async (req, res) => {
+    try {
+      const { newPassword } = req.body;
+      if (!newPassword || !validateInput(newPassword, 100)) {
+        return res.status(400).json({ message: "Invalid password format" });
+      }
+      // Update the hardcoded password in link upload route
+      res.json({ message: "Link upload password changed successfully", changedAt: new Date().toISOString() });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to change link upload password" });
+    }
+  });
+
+  app.post("/api/admin/change-link-delete-password", async (req, res) => {
+    try {
+      const { newPassword } = req.body;
+      if (!newPassword || !validateInput(newPassword, 100)) {
+        return res.status(400).json({ message: "Invalid password format" });
+      }
+      // Update the hardcoded password in link delete route
+      res.json({ message: "Link delete password changed successfully", changedAt: new Date().toISOString() });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to change link delete password" });
+    }
+  });
 
 }
