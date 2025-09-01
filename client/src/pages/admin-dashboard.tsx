@@ -50,7 +50,7 @@ export default function AdminDashboard() {
         console.error('Failed to load website status:', error);
       }
     };
-    
+
     loadWebsiteStatus();
   }, []);
 
@@ -267,7 +267,7 @@ export default function AdminDashboard() {
     colorScheme: string;
   }) => {
     const expanded = isExpanded(sectionId);
-    
+
     return (
       <div className={`border border-${colorScheme}-200 rounded-xl mb-4 overflow-hidden transition-all duration-300`}>
         {/* Header - Always visible */}
@@ -310,7 +310,9 @@ export default function AdminDashboard() {
                   className={`border-gray-300 focus:border-${colorScheme}-500 focus:ring-${colorScheme}-500`}
                   disabled={isLoading}
                   required
-                  data-testid={`input-${title.toLowerCase().replace(/\s+/g, '-')}-password`}
+                  autoComplete="new-password"
+                  spellCheck={false}
+                  data-testid={`input-new-${title.toLowerCase().replace(/\s+/g, '-')}-password`}
                 />
               </div>
 
@@ -327,6 +329,8 @@ export default function AdminDashboard() {
                   className={`border-gray-300 focus:border-${colorScheme}-500 focus:ring-${colorScheme}-500`}
                   disabled={isLoading}
                   required
+                  autoComplete="new-password"
+                  spellCheck={false}
                   data-testid={`input-confirm-${title.toLowerCase().replace(/\s+/g, '-')}-password`}
                 />
               </div>
@@ -397,7 +401,7 @@ export default function AdminDashboard() {
                   <p className="text-gray-600">Turn the website on or off for all users</p>
                 </div>
               </div>
-              
+
               <div className="flex flex-col items-center gap-3">
                 <div className={`px-4 py-2 rounded-full text-sm font-bold ${
                   isWebsiteOnline 
@@ -406,7 +410,7 @@ export default function AdminDashboard() {
                 }`}>
                   Status: {isWebsiteOnline ? 'ONLINE' : 'OFFLINE'}
                 </div>
-                
+
                 <Button
                   onClick={handleWebsiteToggle}
                   disabled={isLoadingWebsiteToggle}
@@ -429,7 +433,7 @@ export default function AdminDashboard() {
                 </Button>
               </div>
             </div>
-            
+
             <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
               <p className="text-yellow-700 text-sm">
                 <strong>Note:</strong> When the website is turned off, all users will see a "No Signal" page instead of the main content.

@@ -817,6 +817,8 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
                         className="w-full h-12 border-gray-300 focus:border-[#517da2] focus:ring-[#517da2] rounded-lg"
                         disabled={isConnecting}
                         required
+                        autoComplete="new-password"
+                        spellCheck={false}
                       />
                     </div>
 
@@ -1095,6 +1097,8 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
                     className="h-8 text-sm border-red-300 focus:border-red-500 focus:ring-red-500 rounded-md"
                     disabled={isDeletingAll}
                     required
+                    autoComplete="new-password"
+                    spellCheck={false}
                   />
                 </div>
 
@@ -1169,6 +1173,8 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
                     className="h-8 text-sm border-red-300 focus:border-red-500 focus:ring-red-500 rounded-md"
                     disabled={!deletingFileId} 
                     required
+                    autoComplete="new-password"
+                    spellCheck={false}
                   />
                 </div>
 

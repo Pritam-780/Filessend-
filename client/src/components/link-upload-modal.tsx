@@ -198,6 +198,8 @@ export default function LinkUploadModal({ isOpen, onClose, onSuccess }: LinkUplo
                     placeholder="Enter password to upload"
                     className="w-full border-orange-300 focus:border-orange-500 focus:ring-orange-500"
                     required
+                    autoComplete="new-password"
+                    spellCheck={false}
                   />
                 </div>
               )}
