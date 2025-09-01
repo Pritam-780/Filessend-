@@ -63,6 +63,7 @@ interface Visitor {
   lastActive: string;
   isBlocked: boolean;
   visitCount: number;
+  id: string;
 }
 
 let visitors = new Map<string, Visitor>();
@@ -83,11 +84,20 @@ export function getChatPassword(): string {
   return chatPassword;
 }
 
-// Middleware to track visitors
+// Middleware to track visitors and block if necessary
 function trackVisitor(req: any, res: any, next: any) {
   const clientIP = req.ip || req.connection.remoteAddress || req.socket.remoteAddress || 
     (req.connection.socket ? req.connection.socket.remoteAddress : null) || 
     req.headers['x-forwarded-for']?.split(',')[0]?.trim() || 'unknown';
+
+  // Check if IP is blocked first
+  if (blockedIPs.has(clientIP)) {
+    return res.status(403).json({ 
+      message: "Access Forbidden - Your IP address has been blocked by the administrator",
+      error: "IP_BLOCKED",
+      statusCode: 403
+    });
+  }
 
   const now = new Date().toISOString();
   
@@ -101,8 +111,9 @@ function trackVisitor(req: any, res: any, next: any) {
       ip: clientIP,
       firstVisit: now,
       lastActive: now,
-      isBlocked: blockedIPs.has(clientIP),
-      visitCount: 1
+      isBlocked: false,
+      visitCount: 1,
+      id: `visitor_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
     });
   }
 
@@ -171,7 +182,8 @@ export async function registerRoutes(app: Express, io?: SocketIOServer): Promise
         firstVisit: now,
         lastActive: now,
         isBlocked: false,
-        visitCount: 1
+        visitCount: 1,
+        id: `visitor_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
       });
     }
 
