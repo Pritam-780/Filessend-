@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, Link } from "wouter";
-import { ArrowLeft, Search, Grid, List } from "lucide-react";
+import { ArrowLeft, Search, Grid, List, Upload } from "lucide-react";
 import Header from "@/components/header";
 import FileCard from "@/components/file-card";
 import PreviewModal from "@/components/preview-modal";
@@ -109,7 +109,7 @@ export default function Category() {
     // For now, we'll filter the already fetched files
     return files.filter(file => 
       file.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      file.description?.toLowerCase().includes(searchQuery.toLowerCase())
+      file.originalName.toLowerCase().includes(searchQuery.toLowerCase())
     );
   };
 
@@ -205,7 +205,7 @@ export default function Category() {
                 <FileCard
                   file={file}
                   onPreview={setPreviewFile}
-                  onDelete={setDeleteTarget}
+                  onDelete={() => setDeleteTarget(file)}
                 />
               </div>
             ))
@@ -277,7 +277,7 @@ export default function Category() {
         isOpen={showUploadModal}
         onClose={() => setShowUploadModal(false)}
         category={category}
-        onUploadSuccess={() => {
+        onSuccess={() => {
           // The socket listener will handle updating the file list
           toast({
             title: "Upload Successful",

@@ -12,6 +12,7 @@ import { fileStorage } from "@/lib/fileStorage";
 interface UploadModalProps {
   isOpen: boolean;
   onClose: () => void;
+  category?: string;
   onSuccess?: () => void;
 }
 
@@ -19,9 +20,9 @@ interface FileWithPreview extends File {
   id: string;
 }
 
-export default function UploadModal({ isOpen, onClose, onSuccess }: UploadModalProps) {
+export default function UploadModal({ isOpen, onClose, category: initialCategory, onSuccess }: UploadModalProps) {
   const [selectedFiles, setSelectedFiles] = useState<FileWithPreview[]>([]);
-  const [category, setCategory] = useState("");
+  const [category, setCategory] = useState(initialCategory || "");
   const [uploadProgress, setUploadProgress] = useState(0);
   const [password, setPassword] = useState("");
   const [showPasswordInput, setShowPasswordInput] = useState(false);
