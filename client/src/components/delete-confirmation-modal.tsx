@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Trash2, Lock, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -13,19 +12,19 @@ interface DeleteConfirmationModalProps {
   fileName: string;
 }
 
-export default function DeleteConfirmationModal({ 
-  isOpen, 
-  onClose, 
-  onConfirm, 
-  fileName 
+export default function DeleteConfirmationModal({
+  isOpen,
+  onClose,
+  onConfirm,
+  fileName
 }: DeleteConfirmationModalProps) {
   const [password, setPassword] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
-  
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!password) {
       toast({
         title: "Password Required",
@@ -36,7 +35,7 @@ export default function DeleteConfirmationModal({
     }
 
     setIsDeleting(true);
-    
+
     try {
       // Pass password to parent component for verification
       await onConfirm(password);
@@ -66,14 +65,14 @@ export default function DeleteConfirmationModal({
             This action cannot be undone. Please enter the password to confirm deletion.
           </DialogDescription>
         </DialogHeader>
-        
+
         <div className="space-y-3 mt-3">
           <div className="bg-red-100 border border-red-300 rounded-lg p-2">
             <p className="text-xs text-red-800 font-medium">
               You are about to delete: <span className="font-bold">"{fileName}"</span>
             </p>
           </div>
-          
+
           <form onSubmit={handleSubmit} className="space-y-3">
             <div className="space-y-1">
               <label htmlFor="password" className="text-xs font-medium text-gray-700 flex items-center gap-1">
@@ -89,9 +88,11 @@ export default function DeleteConfirmationModal({
                 className="h-8 text-sm border-red-300 focus:border-red-500 focus:ring-red-500"
                 disabled={isDeleting}
                 required
+                autoComplete="off"
+                spellCheck={false}
               />
             </div>
-            
+
             <div className="flex gap-2 pt-1">
               <Button
                 type="button"
