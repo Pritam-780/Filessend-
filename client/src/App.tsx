@@ -6,6 +6,7 @@ import Home from "@/pages/home";
 import Category from "@/pages/category";
 import Admin from "@/pages/admin";
 import AdminDashboard from "@/pages/admin-dashboard";
+import AdminDashboard from "@/pages/admin-dashboard";
 import NotFound from "@/pages/not-found";
 import { NoSignal } from "@/components/no-signal";
 import { queryClient } from "@/lib/queryClient";
@@ -67,16 +68,24 @@ function App() {
     );
   }
 
-  // Show NoSignal component when website is offline
-  if (!isWebsiteOnline) {
-    return <NoSignal />;
-  }
-
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <Toaster />
-        <Router />
+        {/* Show NoSignal component when website is offline, but allow admin routes */}
+        {!isWebsiteOnline ? (
+          <Router>
+            <Switch>
+              <Route path="/admin" component={Admin} />
+              <Route path="/admin/dashboard" component={AdminDashboard} />
+              <Route path="*">
+                <NoSignal />
+              </Route>
+            </Switch>
+          </Router>
+        ) : (
+          <Router />
+        )}
       </TooltipProvider>
     </QueryClientProvider>
   );
