@@ -114,9 +114,6 @@ const io = new Server(httpServer, {
 // Chat room management with connection limits
 const chatUsers = new Map();
 const connectionsByIP = new Map();
-
-// Make chatUsers globally accessible for admin monitoring
-(global as any).chatUsers = chatUsers;
 const MAX_CONNECTIONS_PER_IP = 5;
 const MAX_TOTAL_CONNECTIONS = 100;
 
