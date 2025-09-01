@@ -195,7 +195,7 @@ function NoSignal({ onTurnOn }: NoSignalProps) {
               data-testid="button-please-wait"
             >
               <Power className="h-5 w-5 mr-2" />
-              Please Wait ({clickCount}/15)
+              Please Wait
             </Button>
           </div>
         ) : (

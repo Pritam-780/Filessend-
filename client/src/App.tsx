@@ -129,7 +129,7 @@ export default function App() {
 
   // Show no signal page if website is offline
   if (isWebsiteOnline === false) {
-    return <NoSignal />;
+    return <NoSignal onTurnOn={() => setIsWebsiteOnline(true)} />;
   }
 
   // Show loading while checking status
