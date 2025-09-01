@@ -24,7 +24,6 @@ interface ChatMessage {
     mimeType: string;
     size: number;
   };
-  userIP?: string; // Added to store IP address
 }
 
 interface ChatRoomProps {
@@ -40,7 +39,7 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
   const [currentMessage, setCurrentMessage] = useState("");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [userCount, setUserCount] = useState(0);
-  const [onlineUsers, setOnlineUsers] = useState<Array<{username: string, ip: string, joinedAt: number}>>([]);
+  const [onlineUsers, setOnlineUsers] = useState<Array<{username: string, joinedAt: number}>>([]);
   const [isConnecting, setIsConnecting] = useState(false);
   const [hoveredMessage, setHoveredMessage] = useState<string | null>(null);
   const [showDeleteAllModal, setShowDeleteAllModal] = useState(false);
@@ -660,7 +659,7 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
                     </p>
                     {onlineUsers.length > 0 && (
                       <div className="text-xs text-[#a8c4e8] mt-1">
-                        Online: {onlineUsers.map(user => `${user.username} (${user.ip})`).join(', ')}
+                        Online: {onlineUsers.map(user => user.username).join(', ')}
                       </div>
                     )}
                   </div>

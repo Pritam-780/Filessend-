@@ -201,22 +201,20 @@ io.on('connection', (socket) => {
     // Send recent message history to new user
     socket.emit('message-history', messageHistory.slice(-100));
 
-    // Notify others about new user with IP
+    // Notify others about new user
     socket.to('main-chat').emit('user-joined', { 
-      username, 
-      ip: clientIP,
-      message: `${username} (${clientIP}) joined the chat`
+      username,
+      message: `${username} joined the chat`
     });
 
-    // Send current user count and online users with IPs
-    const onlineUsers = Array.from(chatUsers.values()).map(user => ({
+    // Send current user count and online users (without IPs for chat room)
+    const onlineUsersForChat = Array.from(chatUsers.values()).map(user => ({
       username: user.username,
-      ip: user.ip,
       joinedAt: user.joinedAt
     }));
     
     io.to('main-chat').emit('user-count', chatUsers.size);
-    io.to('main-chat').emit('online-users', onlineUsers);
+    io.to('main-chat').emit('online-users', onlineUsersForChat);
 
     log(`User ${username} (${clientIP}) joined chat`);
   });
@@ -352,19 +350,17 @@ io.on('connection', (socket) => {
       chatUsers.delete(socket.id);
       socket.to('main-chat').emit('user-left', { 
         username: user.username,
-        ip: user.ip,
-        message: `${user.username} (${user.ip}) left the chat`
+        message: `${user.username} left the chat`
       });
       
-      // Send updated online users list
-      const onlineUsers = Array.from(chatUsers.values()).map(u => ({
+      // Send updated online users list (without IPs for chat room)
+      const onlineUsersForChat = Array.from(chatUsers.values()).map(u => ({
         username: u.username,
-        ip: u.ip,
         joinedAt: u.joinedAt
       }));
       
       io.to('main-chat').emit('user-count', chatUsers.size);
-      io.to('main-chat').emit('online-users', onlineUsers);
+      io.to('main-chat').emit('online-users', onlineUsersForChat);
       log(`User ${user.username} (${user.ip}) left chat`);
     }
   });
