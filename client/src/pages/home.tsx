@@ -326,16 +326,24 @@ Your colorful digital library for organizing and accessing academic books, relax
       <PasswordModal
         isOpen={!!deleteTarget}
         onClose={() => setDeleteTarget(null)}
-        onPasswordSubmit={(password) => {
-          if (deleteTarget) {
-            // The password verification will be handled by the API
-            fileStorage.deleteFileFromAPI(deleteTarget.id); // Call API to delete file
-            setDeleteTarget(null);
-            toast({
-              title: "File Deleted",
-              description: `"${deleteTarget.name}" has been successfully deleted.`,
-              className: "bg-gradient-to-r from-green-50 to-emerald-50 border-green-200",
-            });
+        onPasswordSubmit={async (password) => {
+          if (deleteTarget && password === "Ak47") {
+            try {
+              // Call API to delete file with password
+              await fileStorage.deleteFileFromAPI(deleteTarget.id, password);
+              setDeleteTarget(null);
+              toast({
+                title: "File Deleted",
+                description: `"${deleteTarget.originalName}" has been successfully deleted.`,
+                className: "bg-gradient-to-r from-green-50 to-emerald-50 border-green-200",
+              });
+            } catch (error) {
+              toast({
+                title: "Error",
+                description: "Failed to delete file. Please try again.",
+                variant: "destructive",
+              });
+            }
           } else {
             toast({
               title: "Access Denied",

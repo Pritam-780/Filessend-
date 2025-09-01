@@ -89,8 +89,8 @@ export default function ViewLinksModal({ isOpen, onClose, links, onDelete }: Vie
             {/* Links List */}
             <div className="space-y-4 max-h-96 overflow-y-auto">
               {filteredLinks.length > 0 ? (
-                filteredLinks.map((link) => (
-                  <div key={link.id} className="bg-gradient-to-r from-orange-50 to-red-50 rounded-lg p-4 border border-orange-200 hover:shadow-md transition-shadow">
+                filteredLinks.map((link, index) => (
+                  <div key={`link-${link.id}-${index}`} className="bg-gradient-to-r from-orange-50 to-red-50 rounded-lg p-4 border border-orange-200 hover:shadow-md transition-shadow">
                     <div className="flex justify-between items-start">
                       <div className="flex-1 min-w-0">
                         <h4 className="font-semibold text-gray-800 mb-2 text-lg">{link.title}</h4>
