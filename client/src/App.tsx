@@ -10,15 +10,13 @@ import { NoSignal } from "@/components/no-signal";
 import { queryClient } from "@/lib/queryClient";
 import { useState, useEffect } from "react";
 import { io } from "socket.io-client";
-import UserNamePrompt from "@/components/UserNamePrompt";
 
 function App() {
   const [isWebsiteOnline, setIsWebsiteOnline] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
-  const [showNamePrompt, setShowNamePrompt] = useState(false);
-  const [userNameRegistered, setUserNameRegistered] = useState(false);
 
   useEffect(() => {
+    // Check initial website status
     const checkWebsiteStatus = async () => {
       try {
         const response = await fetch('/api/website/status');
@@ -32,14 +30,6 @@ function App() {
         setIsLoading(false);
       }
     };
-
-    // Check if user name is already registered
-    const nameRegistered = localStorage.getItem('user-name-registered');
-    if (!nameRegistered) {
-      setShowNamePrompt(true);
-    } else {
-      setUserNameRegistered(true);
-    }
 
     checkWebsiteStatus();
 
@@ -55,11 +45,6 @@ function App() {
     };
   }, []);
 
-  const handleNameSubmitted = (name: string) => {
-    setShowNamePrompt(false);
-    setUserNameRegistered(true);
-  };
-
   // Show loading state briefly
   if (isLoading) {
     return (
@@ -71,24 +56,26 @@ function App() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <div className="min-h-screen">
-        {showNamePrompt && (
-          <UserNamePrompt onNameSubmitted={handleNameSubmitted} />
-        )}
-
-        {!isWebsiteOnline ? (
-          <NoSignal />
-        ) : userNameRegistered ? (
-          <Switch>
+      <Toaster />
+      <Switch>
+        {/* Always allow admin routes regardless of website status */}
+        <Route path="/admin" component={Admin} />
+        <Route path="/admin/dashboard" component={AdminDashboard} />
+        
+        {/* If website is online, show normal routes */}
+        {isWebsiteOnline ? (
+          <>
             <Route path="/" component={Home} />
             <Route path="/category/:categoryId" component={Category} />
-            <Route path="/admin" component={Admin} />
-            <Route path="/admin/dashboard" component={AdminDashboard} />
             <Route component={NotFound} />
-          </Switch>
-        ) : null}
-      </div>
-      <Toaster />
+          </>
+        ) : (
+          /* If website is offline, show NoSignal for all other routes */
+          <Route path="*">
+            <NoSignal />
+          </Route>
+        )}
+      </Switch>
     </QueryClientProvider>
   );
 }
