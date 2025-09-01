@@ -42,6 +42,16 @@ interface FileOperation {
   timestamp: string;
 }
 
+// Interface for link operations log
+interface LinkOperation {
+  type: 'upload' | 'delete';
+  linkTitle: string;
+  linkUrl: string;
+  userName: string;
+  userIP: string;
+  timestamp: string;
+}
+
 
 export default function AdminDashboard() {
   const [, setLocation] = useLocation();
@@ -93,6 +103,9 @@ export default function AdminDashboard() {
   // State for file operations log
   const [fileOperations, setFileOperations] = useState<FileOperation[]>([]);
 
+  // State for link operations log
+  const [linkOperations, setLinkOperations] = useState<LinkOperation[]>([]);
+
   // Load initial website status and announcements
   useEffect(() => {
     const loadWebsiteStatus = async () => {
@@ -128,8 +141,8 @@ export default function AdminDashboard() {
           setVisitors(data.visitors || []);
           setFileUploads(data.fileUploads || []);
           setLinkUploads(data.linkUploads || []);
-          // Assuming the API also returns file operations data
           setFileOperations(data.fileOperations || []); 
+          setLinkOperations(data.linkOperations || []); 
         }
       } catch (error) {
         console.error('Failed to load visitors:', error);
@@ -576,6 +589,7 @@ export default function AdminDashboard() {
         setFileUploads([]);
         setLinkUploads([]);
         setFileOperations([]); // Clear file operations as well
+        setLinkOperations([]); // Clear link operations as well
         toast({
           title: "Bulk Delete Successful",
           description: "All visitor data has been deleted successfully.",
@@ -1014,10 +1028,10 @@ export default function AdminDashboard() {
                       <tbody className="bg-white divide-y divide-gray-200">
                         {visitors.map((visitor) => (
                           <tr key={visitor.id} className={visitor.isBlocked ? 'bg-red-50' : ''}>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{visitor.name || 'N/A'}</td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{visitor.ip}</td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{visitor.name || 'Anonymous'}</td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-mono">{visitor.ip}</td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                              {new Date(visitor.timestamp).toLocaleString()}
+                              {new Date(visitor.lastActive || visitor.firstVisit).toLocaleString()}
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm">
                               <span className={`px-3 py-1 rounded-full text-xs font-bold ${
@@ -1323,8 +1337,91 @@ export default function AdminDashboard() {
                               </span>
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{operation.fileName}</td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{operation.userName}</td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{operation.userIP}</td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-medium">{operation.userName}</td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-mono">{operation.userIP}</td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                              {new Date(operation.timestamp).toLocaleString()}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Link Operations Tracking Section */}
+          <div className="mb-8 border border-indigo-200 rounded-2xl overflow-hidden shadow-xl transition-all duration-300">
+            <div 
+              className="bg-gradient-to-r from-indigo-50 to-purple-50 p-6 cursor-pointer hover:from-indigo-100 hover:to-purple-100 transition-all duration-300 border-b border-indigo-200"
+              onClick={() => toggleSection('link-operations')}
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="bg-gradient-to-br from-indigo-100 to-purple-100 w-16 h-16 rounded-full flex items-center justify-center shadow-lg">
+                    <Link className="h-8 w-8 text-indigo-600" />
+                  </div>
+                  <div>
+                    <h3 className="text-2xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+                      🔗 Link Operations Log
+                    </h3>
+                    <p className="text-gray-600 text-lg">Track all link uploads and deletions</p>
+                    <div className="flex items-center gap-2 mt-2">
+                      <div className="w-2 h-2 bg-indigo-400 rounded-full animate-ping"></div>
+                      <span className="text-sm text-indigo-600 font-medium">
+                        {linkOperations.length} operations tracked
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <div className="flex flex-col items-center gap-2">
+                  <p className="text-sm font-bold text-indigo-600 animate-bounce">Click to {isExpanded('link-operations') ? 'Close' : 'Open'}</p>
+                  <div className="transition-transform duration-300">
+                    {isExpanded('link-operations') ? (
+                      <ChevronDown className="h-8 w-8 text-indigo-600 animate-pulse" />
+                    ) : (
+                      <ChevronRight className="h-8 w-8 text-indigo-600 animate-pulse" />
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className={`transition-all duration-500 ease-in-out ${isExpanded('link-operations') ? 'max-h-[800px] opacity-100' : 'max-h-0 opacity-0'} overflow-hidden`}>
+              <div className="p-6 bg-white">
+                {linkOperations.length === 0 ? (
+                  <div className="text-center py-10 text-gray-500">
+                    No link operations tracked yet.
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-gray-200 rounded-xl overflow-hidden shadow-lg">
+                      <thead className="bg-gradient-to-r from-indigo-50 to-purple-50">
+                        <tr>
+                          <th scope="col" className="px-6 py-3 text-left text-xs font-bold text-indigo-600 uppercase tracking-wider">Operation</th>
+                          <th scope="col" className="px-6 py-3 text-left text-xs font-bold text-indigo-600 uppercase tracking-wider">Link Title</th>
+                          <th scope="col" className="px-6 py-3 text-left text-xs font-bold text-indigo-600 uppercase tracking-wider">User Name</th>
+                          <th scope="col" className="px-6 py-3 text-left text-xs font-bold text-indigo-600 uppercase tracking-wider">User IP</th>
+                          <th scope="col" className="px-6 py-3 text-left text-xs font-bold text-indigo-600 uppercase tracking-wider">Timestamp</th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-gray-200">
+                        {linkOperations.map((operation, index) => (
+                          <tr key={index} className={operation.type === 'delete' ? 'bg-red-50' : 'bg-green-50'}>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                              <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+                                operation.type === 'upload' 
+                                  ? 'bg-green-100 text-green-800' 
+                                  : 'bg-red-100 text-red-800'
+                              }`}>
+                                {operation.type === 'upload' ? '🔗 Upload' : '🗑️ Delete'}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{operation.linkTitle}</td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-medium">{operation.userName}</td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-mono">{operation.userIP}</td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                               {new Date(operation.timestamp).toLocaleString()}
                             </td>

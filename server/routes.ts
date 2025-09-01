@@ -102,7 +102,20 @@ interface FileOperation {
   fileId?: string;
 }
 
+// Link operations tracking
+interface LinkOperation {
+  id: string;
+  type: 'upload' | 'delete';
+  linkTitle: string;
+  linkUrl: string;
+  userName: string;
+  userIP: string;
+  timestamp: string;
+  linkId?: string;
+}
+
 let fileOperations: FileOperation[] = [];
+let linkOperations: LinkOperation[] = [];
 
 // Helper function for input validation
 function validateInput(input: string, maxLength: number): boolean {
@@ -791,6 +804,19 @@ export async function registerRoutes(app: Express, io?: SocketIOServer): Promise
       };
       linkUploads.set(newLink.id, uploadRecord);
 
+      // Track link operation
+      const operation: LinkOperation = {
+        id: `link-op-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        type: 'upload',
+        linkTitle: newLink.title,
+        linkUrl: newLink.url,
+        userName: uploaderName,
+        userIP: clientIP,
+        timestamp: newLink.uploadedAt,
+        linkId: newLink.id
+      };
+      linkOperations.unshift(operation);
+
       // Broadcast link upload to all connected clients
       if (io) {
         io.emit('link-uploaded', {
@@ -825,9 +851,35 @@ export async function registerRoutes(app: Express, io?: SocketIOServer): Promise
       const deletedLink = links[linkIndex];
       links.splice(linkIndex, 1);
 
+      // Get user info for tracking
+      const clientIP = req.ip || req.connection.remoteAddress || req.socket.remoteAddress || 
+        (req.connection.socket ? req.connection.socket.remoteAddress : null) || 
+        req.headers['x-forwarded-for']?.split(',')[0]?.trim() || 'unknown';
+      const visitor = visitors.get(clientIP);
+      const userName = visitor?.name || 'Anonymous';
+
+      // Track link delete operation
+      const operation: LinkOperation = {
+        id: `link-op-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        type: 'delete',
+        linkTitle: deletedLink.title,
+        linkUrl: deletedLink.url,
+        userName,
+        userIP: clientIP,
+        timestamp: new Date().toISOString(),
+        linkId: id
+      };
+      linkOperations.unshift(operation);
+
       // Broadcast link deletion to all connected clients
       if (io) {
-        io.emit('link-deleted', { linkId: id });
+        io.emit('link-deleted', { 
+          linkId: id,
+          linkTitle: deletedLink.title,
+          userName,
+          userIP: clientIP,
+          message: `Link deleted by ${userName} (${clientIP}): ${deletedLink.title}`
+        });
       }
 
       res.json({ message: "Link deleted successfully" });
@@ -874,7 +926,8 @@ export async function registerRoutes(app: Express, io?: SocketIOServer): Promise
         visitors: visitorList,
         fileUploads: Array.from(fileUploads.values()),
         linkUploads: Array.from(linkUploads.values()),
-        fileOperations: fileOperations.slice(0, 1000) // Return last 1000 operations
+        fileOperations: fileOperations.slice(0, 1000), // Return last 1000 operations
+        linkOperations: linkOperations.slice(0, 1000) // Return last 1000 link operations
       });
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch visitors" });
@@ -958,6 +1011,7 @@ export async function registerRoutes(app: Express, io?: SocketIOServer): Promise
       fileUploads.clear();
       linkUploads.clear();
       fileOperations.length = 0; // Clear array
+      linkOperations.length = 0; // Clear link operations array
 
       console.log("All visitor data deleted by admin");
       res.json({ message: "All visitor data deleted successfully" });
