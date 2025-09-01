@@ -71,20 +71,27 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <Toaster />
-        {/* Show NoSignal component when website is offline, but allow admin routes */}
-        {!isWebsiteOnline ? (
-          <Router>
-            <Switch>
-              <Route path="/admin" component={Admin} />
-              <Route path="/admin/dashboard" component={AdminDashboard} />
+        <Router>
+          <Switch>
+            {/* Always allow admin routes regardless of website status */}
+            <Route path="/admin" component={Admin} />
+            <Route path="/admin/dashboard" component={AdminDashboard} />
+            
+            {/* If website is online, show normal routes */}
+            {isWebsiteOnline ? (
+              <>
+                <Route path="/" component={Home} />
+                <Route path="/category/:categoryId" component={Category} />
+                <Route component={NotFound} />
+              </>
+            ) : (
+              /* If website is offline, show NoSignal for all other routes */
               <Route path="*">
                 <NoSignal />
               </Route>
-            </Switch>
-          </Router>
-        ) : (
-          <Router />
-        )}
+            )}
+          </Switch>
+        </Router>
       </TooltipProvider>
     </QueryClientProvider>
   );
