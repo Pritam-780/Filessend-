@@ -117,6 +117,19 @@ export default function MobileMenu({
               <FileText className="h-5 w-5 mr-3" />
               View Links
             </div>
+
+            <div
+              onClick={() => {
+                // Trigger upload modal
+                const event = new CustomEvent('openUploadModal');
+                window.dispatchEvent(event);
+                onClose();
+              }}
+              className="flex items-center py-3 px-4 text-secondary hover:bg-gray-100 rounded-lg transition-colors font-medium cursor-pointer"
+            >
+              <Upload className="h-5 w-5 mr-3" />
+              Upload Your First Book
+            </div>
           </nav>
         </div>
       </div>

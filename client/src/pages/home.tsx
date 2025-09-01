@@ -111,14 +111,17 @@ export default function Home() {
     // Listen for mobile menu events
     const handleOpenLinkUploadModal = () => setShowLinkUploadModal(true);
     const handleOpenViewLinksModal = () => setShowLinksModal(true);
+    const handleOpenUploadModal = () => setShowUploadModal(true);
 
     window.addEventListener('openLinkUploadModal', handleOpenLinkUploadModal);
     window.addEventListener('openViewLinksModal', handleOpenViewLinksModal);
+    window.addEventListener('openUploadModal', handleOpenUploadModal);
 
     return () => {
       mounted = false;
       window.removeEventListener('openLinkUploadModal', handleOpenLinkUploadModal);
       window.removeEventListener('openViewLinksModal', handleOpenViewLinksModal);
+      window.removeEventListener('openUploadModal', handleOpenUploadModal);
     };
   }, []);
 
@@ -212,13 +215,6 @@ Your colorful digital library for organizing and accessing academic books, relax
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
             <Button
-              onClick={() => setShowUploadModal(true)}
-              className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white px-8 py-3 rounded-xl text-lg font-bold hover:from-blue-700 hover:via-indigo-700 hover:to-purple-700 shadow-2xl transform hover:scale-105 transition-all duration-300"
-            >
-              <Plus className="h-5 w-5 mr-2" />
-              Upload Your First Book
-            </Button>
-            <Button
               onClick={() => setShowChatRoom(true)}
               className="bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 text-white px-8 py-3 rounded-xl text-lg font-bold hover:from-emerald-700 hover:via-teal-700 hover:to-cyan-700 shadow-2xl transform hover:scale-105 transition-all duration-300"
             >
@@ -231,7 +227,7 @@ Your colorful digital library for organizing and accessing academic books, relax
         {/* Link Sharing Section */}
         <div className="mb-12 bg-gradient-to-r from-white/80 to-orange-50/80 backdrop-blur-sm rounded-2xl p-8 shadow-xl border border-orange-200">
           <h2 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-orange-600 via-red-600 to-pink-600 bg-clip-text text-transparent mb-4 text-center">
-            Share Your Links
+            Your Link
           </h2>
           <p className="text-lg text-gray-700 mb-6 text-center max-w-2xl mx-auto font-medium">
             Upload and share important links with descriptions. Perfect for sharing resources, websites, and references.
