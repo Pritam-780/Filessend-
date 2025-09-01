@@ -1,9 +1,10 @@
-import { Eye, Download, FileText, Image, FileSpreadsheet, Trash2 } from "lucide-react";
+import { Eye, Download, FileText, Image, FileSpreadsheet, Trash2, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { FileData, fileStorage } from "@/lib/fileStorage";
 import { useState } from "react";
 import DeleteConfirmationModal from "./delete-confirmation-modal";
 import { toast } from "@/hooks/use-toast";
+import { formatDistanceToNow } from 'date-fns';
 
 
 interface FileCardProps {
@@ -12,8 +13,13 @@ interface FileCardProps {
   onDelete?: () => void;
 }
 
-export default function FileCard({ file, onPreview, onDelete }: FileCardProps) {
+export default function FileCard({ file, onDelete }: FileCardProps) {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const filename = file?.filename || '';
+  const isImage = filename.toLowerCase().match(/\.(jpg|jpeg|png|gif|bmp|webp)$/);
+  const isPdf = filename.toLowerCase().endsWith('.pdf');
+  const isExcel = filename.toLowerCase().match(/\.(xlsx|xls|csv)$/);
+
   const getFileIcon = () => {
     if (file.mimeType.startsWith('image/')) {
       return <Image className="h-6 w-6 text-blue-600" />;

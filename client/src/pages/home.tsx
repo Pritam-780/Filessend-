@@ -56,7 +56,7 @@ export default function Home() {
         // Check if file already exists to prevent duplicates
         const exists = oldFiles.some(file => file.id === newFile.id);
         if (exists) return oldFiles;
-        
+
         const updatedFiles = [{ ...newFile, uploadedAt: new Date(newFile.uploadedAt) }, ...oldFiles];
         return updatedFiles;
       });
@@ -93,7 +93,7 @@ export default function Home() {
   // Load uploaded links on component mount and set up mobile menu listeners
   useEffect(() => {
     let mounted = true;
-    
+
     const loadUploadedLinks = async () => {
       try {
         const response = await fetch('/api/links');
@@ -244,7 +244,7 @@ Your colorful digital library for organizing and accessing academic books, relax
             </Button>
           </div>
 
-          
+
         </div>
 
         {/* Categories */}
