@@ -1,9 +1,69 @@
 import { useEffect, useState } from "react";
-import { Tv, Wifi, WifiOff } from "lucide-react";
+import { Tv, Wifi, WifiOff, Power, Lock } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { useToast } from "@/hooks/use-toast";
 
-function NoSignal() {
+interface NoSignalProps {
+  onTurnOn?: () => void;
+}
+
+function NoSignal({ onTurnOn }: NoSignalProps) {
   const [dots, setDots] = useState("");
   const [staticNoise, setStaticNoise] = useState(0);
+  const [showPasswordInput, setShowPasswordInput] = useState(false);
+  const [password, setPassword] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { toast } = useToast();
+
+  const handlePasswordSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!password) {
+      toast({
+        title: "Password Required",
+        description: "Please enter the password to turn on the website.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      // Check if the password is correct
+      if (password === "@gmail.pritam@") {
+        toast({
+          title: "Website Activated",
+          description: "Welcome back! The website is now online.",
+          variant: "default",
+        });
+        
+        // Call the onTurnOn callback if provided
+        if (onTurnOn) {
+          onTurnOn();
+        } else {
+          // Refresh the page to restore the website
+          window.location.reload();
+        }
+      } else {
+        toast({
+          title: "Access Denied",
+          description: "Incorrect password. Please try again.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "An error occurred. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+      setPassword("");
+    }
+  };
 
   useEffect(() => {
     const dotsInterval = setInterval(() => {
@@ -102,6 +162,76 @@ function NoSignal() {
             <div className="h-full w-1/3 bg-gradient-to-r from-transparent via-blue-400 to-transparent animate-slideRight"></div>
           </div>
         </div>
+
+        {/* Turn On Button */}
+        {!showPasswordInput ? (
+          <div className="mt-8">
+            <Button
+              onClick={() => setShowPasswordInput(true)}
+              className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white font-bold px-8 py-3 rounded-lg shadow-xl transform transition-all duration-300 hover:scale-105 animate-pulse"
+              data-testid="button-turn-on"
+            >
+              <Power className="h-5 w-5 mr-2" />
+              Turn On Website
+            </Button>
+          </div>
+        ) : (
+          <div className="mt-8 w-full max-w-sm mx-auto">
+            <div className="bg-gray-900 bg-opacity-80 backdrop-blur-sm rounded-xl p-6 border border-gray-700 shadow-2xl">
+              <div className="text-center mb-4">
+                <Lock className="h-8 w-8 mx-auto text-green-400 mb-2" />
+                <h3 className="text-white text-lg font-bold">Enter Access Code</h3>
+                <p className="text-gray-400 text-sm">Password required to activate website</p>
+              </div>
+              
+              <form onSubmit={handlePasswordSubmit} className="space-y-4">
+                <div>
+                  <Input
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Enter password..."
+                    className="w-full h-12 bg-gray-800 border-gray-600 text-white placeholder-gray-400 focus:border-green-500 focus:ring-green-500 rounded-lg text-center font-mono"
+                    disabled={isSubmitting}
+                    required
+                  />
+                </div>
+                
+                <div className="flex gap-3">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      setShowPasswordInput(false);
+                      setPassword("");
+                    }}
+                    className="flex-1 h-12 border-gray-600 text-gray-300 hover:bg-gray-800 hover:text-white"
+                    disabled={isSubmitting}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="submit"
+                    className="flex-1 h-12 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white font-bold shadow-lg"
+                    disabled={isSubmitting || !password}
+                  >
+                    {isSubmitting ? (
+                      <div className="flex items-center gap-2">
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                        Activating...
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <Power className="h-4 w-4" />
+                        Activate
+                      </div>
+                    )}
+                  </Button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Custom CSS animations */}
