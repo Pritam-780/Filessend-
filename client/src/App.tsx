@@ -10,6 +10,7 @@ import NoSignal from "@/components/no-signal";
 import AnnouncementModal from "@/components/announcement-modal";
 import NamePromptModal from "@/components/name-prompt-modal";
 import { useEffect, useState } from "react";
+import { io, Socket } from "socket.io-client";
 
 const queryClient = new QueryClient();
 
@@ -87,9 +88,33 @@ export default function App() {
       }
     };
 
+    // Set up WebSocket connection for real-time updates
+    const socket: Socket = io('/', {
+      path: '/ws'
+    });
+
+    // Listen for real-time website status changes
+    socket.on('website-status-changed', (data) => {
+      console.log('Website status changed:', data);
+      setIsWebsiteOnline(data.isOnline);
+    });
+
+    socket.on('connect', () => {
+      console.log('Connected to WebSocket server');
+    });
+
+    socket.on('disconnect', () => {
+      console.log('Disconnected from WebSocket server');
+    });
+
     checkWebsiteStatus();
     checkAnnouncement();
     checkVisitorStatus();
+
+    // Cleanup function
+    return () => {
+      socket.disconnect();
+    };
   }, []);
 
   const handleNameSubmit = async (name: string) => {

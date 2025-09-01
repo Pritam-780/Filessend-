@@ -54,20 +54,31 @@ function NoSignal({ onTurnOn }: NoSignalProps) {
     try {
       // Check if the password is correct
       if (password === "@gmail.pritam@") {
-        toast({
-          title: "Website Activated",
-          description: "Welcome back! The website is now online.",
-          variant: "default",
+        // Call the API to turn the website online for everyone
+        const response = await fetch('/api/admin/toggle-website', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ isOnline: true })
         });
-        
-        // Call the onTurnOn callback if provided, otherwise reload
-        if (onTurnOn) {
-          onTurnOn();
+
+        if (response.ok) {
+          toast({
+            title: "Website Activated",
+            description: "Website is now online for everyone!",
+            variant: "default",
+          });
+          
+          // The website will automatically update via WebSocket
+          // Call the onTurnOn callback if provided
+          if (onTurnOn) {
+            setTimeout(() => {
+              onTurnOn();
+            }, 1000);
+          }
         } else {
-          // Refresh the page to restore the website
-          setTimeout(() => {
-            window.location.reload();
-          }, 1000);
+          throw new Error('Failed to activate website');
         }
       } else {
         toast({
