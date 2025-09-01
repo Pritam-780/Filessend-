@@ -391,8 +391,8 @@ export async function registerRoutes(app: Express, io?: SocketIOServer): Promise
         return res.status(400).json({ message: "Current password and new password are required" });
       }
 
-      // Verify current password (using admin password for verification)
-      if (currentPassword !== adminPassword) {
+      // Verify current password (using system password for verification)
+      if (currentPassword !== systemPassword) {
         return res.status(403).json({ message: "Current password is incorrect" });
       }
 
