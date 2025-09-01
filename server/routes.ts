@@ -39,7 +39,8 @@ const upload = multer({
 });
 
 // Initialize system password (will be updated by admin)
-let systemPassword = "crazy_pritam";
+let systemPassword = "Ak47";
+let adminPassword = "@gmail.pritam#";
 
 export async function registerRoutes(app: Express, io?: SocketIOServer): Promise<void> {
 
@@ -366,8 +367,8 @@ export async function registerRoutes(app: Express, io?: SocketIOServer): Promise
         return res.status(400).json({ message: "Username and password are required" });
       }
 
-      // Check admin credentials - username is "crazy_pritam" and password is current system password
-      if (username === "crazy_pritam" && password === systemPassword) {
+      // Check admin credentials - username is "crazy_pritam" and password is admin password
+      if (username === "crazy_pritam" && password === adminPassword) {
         res.json({
           message: "Login successful",
           timestamp: new Date().toISOString()
@@ -390,13 +391,14 @@ export async function registerRoutes(app: Express, io?: SocketIOServer): Promise
         return res.status(400).json({ message: "Current password and new password are required" });
       }
 
-      // Verify current password
-      if (currentPassword !== systemPassword) {
+      // Verify current password (using admin password for verification)
+      if (currentPassword !== adminPassword) {
         return res.status(403).json({ message: "Current password is incorrect" });
       }
 
-      // Update system password
+      // Update both system and admin passwords
       systemPassword = newPassword;
+      adminPassword = newPassword;
 
       // Broadcast password change to all connected clients (optional)
       if (io) {
