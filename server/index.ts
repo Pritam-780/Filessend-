@@ -295,8 +295,8 @@ io.on('connection', (socket) => {
   });
 
   socket.on('file-uploaded', (fileData) => {
-    // Broadcast file upload to all users in chat
-    socket.to('main-chat').emit('file-uploaded', fileData);
+    // Broadcast file upload to all users in chat including sender
+    io.to('main-chat').emit('file-uploaded', fileData);
     log(`File ${fileData.originalName} uploaded and broadcast to chat`);
   });
 

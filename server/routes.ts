@@ -186,13 +186,26 @@ export async function registerRoutes(app: Express, io?: SocketIOServer): Promise
         const savedFile = await storage.createFile(fileData);
         uploadedFiles.push(savedFile);
 
-        // Broadcast file upload to all connected clients
+        // Broadcast file upload to all connected clients and chat room
         if (io) {
+          const fileUploadData = {
+            id: savedFile.id,
+            originalName: savedFile.originalName,
+            mimeType: savedFile.mimeType,
+            size: savedFile.size,
+            category: savedFile.category,
+            uploadedAt: savedFile.uploadedAt
+          };
+          
+          // Broadcast to general file system
           io.emit('file-uploaded', {
             file: savedFile,
             message: `New file uploaded: ${file.originalname}`,
             timestamp: new Date().toISOString()
           });
+          
+          // Broadcast specifically to chat room for real-time visibility
+          io.to('main-chat').emit('file-uploaded', fileUploadData);
         }
       }
 

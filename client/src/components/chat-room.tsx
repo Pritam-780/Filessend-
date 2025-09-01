@@ -210,10 +210,14 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
       });
 
       newSocket.on('file-uploaded', (fileData) => {
+        // Refresh files immediately for real-time visibility
         loadFiles();
+        
+        // Show notification for file uploads
+        const fileName = fileData.originalName || fileData.file?.originalName || "New file";
         toast({
-          title: "New File",
-          description: `${fileData.originalName} was uploaded`,
+          title: "📁 New File in Chat Store",
+          description: `${fileName} was uploaded and is now available`,
           className: "bg-blue-50 border-blue-200",
         });
       });
@@ -370,6 +374,9 @@ export default function ChatRoom({ isOpen, onClose }: ChatRoomProps) {
       }
 
       socket.emit('send-message', messageData);
+
+      // Refresh files immediately to show the uploaded file
+      loadFiles();
 
       setCurrentMessage("");
       setSelectedFile(null);
