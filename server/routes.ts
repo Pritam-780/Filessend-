@@ -357,6 +357,30 @@ export async function registerRoutes(app: Express, io?: SocketIOServer): Promise
     }
   });
 
+  // Admin login route
+  app.post("/api/admin/login", async (req, res) => {
+    try {
+      const { username, password } = req.body;
+
+      if (!username || !password) {
+        return res.status(400).json({ message: "Username and password are required" });
+      }
+
+      // Check admin credentials - username is "crazy_pritam" and password is current system password
+      if (username === "crazy_pritam" && password === systemPassword) {
+        res.json({
+          message: "Login successful",
+          timestamp: new Date().toISOString()
+        });
+      } else {
+        res.status(401).json({ message: "Invalid username or password" });
+      }
+    } catch (error) {
+      console.error('Admin login error:', error);
+      res.status(500).json({ message: "Failed to authenticate" });
+    }
+  });
+
   // Admin password management routes
   app.post("/api/admin/change-password", async (req, res) => {
     try {

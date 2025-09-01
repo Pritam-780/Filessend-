@@ -18,16 +18,7 @@ export default function AdminDashboard() {
     e.preventDefault();
     setIsLoading(true);
 
-    // Verify current password
-    if (currentPassword !== "Ak47") {
-      toast({
-        title: "Error",
-        description: "Current password is incorrect.",
-        variant: "destructive",
-      });
-      setIsLoading(false);
-      return;
-    }
+    // Password verification will be handled by the API endpoint
 
     // Check if new passwords match
     if (newPassword !== confirmPassword) {
