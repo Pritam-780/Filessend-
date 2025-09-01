@@ -4,9 +4,52 @@ import { Server } from "socket.io";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import cors from "cors";
+import helmet from "helmet";
+import rateLimit from "express-rate-limit";
 
 const app = express();
 const httpServer = createServer(app);
+
+// Security middleware
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'", "https://cdn.tailwindcss.com"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "https://cdn.tailwindcss.com"],
+      imgSrc: ["'self'", "data:", "blob:"],
+      connectSrc: ["'self'", "ws:", "wss:"]
+    }
+  },
+  crossOriginEmbedderPolicy: false
+}));
+
+// Rate limiting
+const generalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // Limit each IP to 100 requests per windowMs
+  message: "Too many requests from this IP, please try again later.",
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5, // Limit each IP to 5 auth attempts per windowMs
+  message: "Too many authentication attempts, please try again later.",
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+const uploadLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 10, // Limit each IP to 10 uploads per minute
+  message: "Too many upload attempts, please try again later.",
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+app.use(generalLimiter);
 
 // Configure CORS for Socket.IO
 app.use(cors({
@@ -14,10 +57,10 @@ app.use(cors({
   credentials: true
 }));
 
-app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: false, limit: '10mb' }));
 
-// Initialize Socket.IO
+// Initialize Socket.IO with performance optimizations
 const io = new Server(httpServer, {
   cors: {
     origin: process.env.NODE_ENV === "development" ? "http://localhost:5000" : true,
@@ -25,11 +68,32 @@ const io = new Server(httpServer, {
   },
   maxHttpBufferSize: 1e6, // 1MB
   pingTimeout: 60000,
-  pingInterval: 25000
+  pingInterval: 25000,
+  transports: ['websocket', 'polling'],
+  allowEIO3: true,
+  compression: true,
+  perMessageDeflate: {
+    threshold: 1024,
+    zlibDeflateOptions: {
+      chunkSize: 1024,
+      windowBits: 13,
+      level: 3,
+      concurrency: 10,
+    },
+    zlibInflateOptions: {
+      chunkSize: 1024,
+      windowBits: 13,
+      level: 3,
+      concurrency: 10,
+    }
+  }
 });
 
-// Chat room management
+// Chat room management with connection limits
 const chatUsers = new Map();
+const connectionsByIP = new Map();
+const MAX_CONNECTIONS_PER_IP = 5;
+const MAX_TOTAL_CONNECTIONS = 100;
 
 let messageHistory: Array<{
   id: string;
@@ -67,7 +131,25 @@ function setChatPassword(newPassword: string): void {
 const MAX_MESSAGES = 500;
 
 io.on('connection', (socket) => {
-  log(`User connected: ${socket.id}`);
+  const clientIP = socket.handshake.address;
+  
+  // Check total connections
+  if (chatUsers.size >= MAX_TOTAL_CONNECTIONS) {
+    socket.emit('connection-error', 'Server is at capacity. Please try again later.');
+    socket.disconnect();
+    return;
+  }
+
+  // Check connections per IP
+  const ipConnections = connectionsByIP.get(clientIP) || 0;
+  if (ipConnections >= MAX_CONNECTIONS_PER_IP) {
+    socket.emit('connection-error', 'Too many connections from your IP address.');
+    socket.disconnect();
+    return;
+  }
+
+  connectionsByIP.set(clientIP, ipConnections + 1);
+  log(`User connected: ${socket.id} from IP: ${clientIP}`);
 
   // Chat room management
   socket.on('join-chat', (data) => {
@@ -108,10 +190,27 @@ io.on('connection', (socket) => {
       return;
     }
 
+    // Input validation
+    if (!data.message || typeof data.message !== 'string') {
+      socket.emit('message-error', 'Invalid message format');
+      return;
+    }
+
+    // Sanitize message
+    const sanitizedMessage = data.message
+      .trim()
+      .substring(0, 1000)
+      .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, ''); // Remove script tags
+
+    if (!sanitizedMessage) {
+      socket.emit('message-error', 'Message cannot be empty');
+      return;
+    }
+
     const message: any = {
       id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       username: user.username,
-      message: data.message.substring(0, 1000), // Limit message length
+      message: sanitizedMessage,
       timestamp: Date.now()
     };
 
@@ -200,6 +299,16 @@ io.on('connection', (socket) => {
 
   socket.on('disconnect', () => {
     const user = chatUsers.get(socket.id);
+    const clientIP = socket.handshake.address;
+    
+    // Clean up IP connection count
+    const ipConnections = connectionsByIP.get(clientIP) || 0;
+    if (ipConnections <= 1) {
+      connectionsByIP.delete(clientIP);
+    } else {
+      connectionsByIP.set(clientIP, ipConnections - 1);
+    }
+
     if (user) {
       chatUsers.delete(socket.id);
       socket.to('main-chat').emit('user-left', { username: user.username });
@@ -255,10 +364,16 @@ app.use((req, res, next) => {
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
-    const message = err.message || "Internal Server Error";
+    
+    // Don't expose internal error details in production
+    const message = process.env.NODE_ENV === "development" 
+      ? err.message || "Internal Server Error"
+      : "Internal Server Error";
+
+    // Log error for debugging
+    log(`Error ${status}: ${err.message}`);
 
     res.status(status).json({ message });
-    throw err;
   });
 
   // importantly only setup vite in development and after
