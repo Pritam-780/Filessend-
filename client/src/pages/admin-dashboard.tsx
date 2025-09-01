@@ -438,7 +438,7 @@ export default function AdminDashboard() {
           </div>
 
           {/* Collapsible Password Sections */}
-          <div className="space-y-4"></div>
+          <div className="space-y-4">
             {/* File Upload Password */}
             <CollapsiblePasswordSection
               sectionId="file-upload"
