@@ -31,7 +31,7 @@ export function NoSignal() {
               data-testid="icon-no-signal-tv" 
             />
           </div>
-          
+
           {/* Enhanced static noise effect */}
           <div className="absolute inset-0 opacity-30">
             <div 
@@ -39,7 +39,7 @@ export function NoSignal() {
               style={{ opacity: staticNoise * 0.5 }}
             />
           </div>
-          
+
           {/* Glitch effect */}
           <div className="absolute inset-0 opacity-20 animate-pulse">
             <div className="bg-red-500 h-1 w-32 mx-auto mb-4 animate-bounce"></div>
@@ -56,7 +56,7 @@ export function NoSignal() {
             <span className="relative z-10">NO SIGNAL</span>
             <div className="absolute inset-0 text-red-500 opacity-20 animate-ping">NO SIGNAL</div>
           </h1>
-          
+
           <div className="flex items-center justify-center gap-3">
             <WifiOff className="h-6 w-6 text-red-400 animate-bounce" />
             <p 
@@ -103,32 +103,32 @@ export function NoSignal() {
           </div>
         </div>
       </div>
-      
+
       {/* Custom CSS animations */}
       <style jsx>{`
         @keyframes fadeIn {
           from { opacity: 0; }
           to { opacity: 1; }
         }
-        
+
         @keyframes slideUp {
           from { transform: translateY(20px); opacity: 0; }
           to { transform: translateY(0); opacity: 1; }
         }
-        
+
         @keyframes slideRight {
           0% { transform: translateX(-100%); }
           100% { transform: translateX(300%); }
         }
-        
+
         .animate-fadeIn {
           animation: fadeIn 0.8s ease-out;
         }
-        
+
         .animate-slideUp {
           animation: slideUp 0.6s ease-out;
         }
-        
+
         .animate-slideRight {
           animation: slideRight 2s infinite linear;
         }
