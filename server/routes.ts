@@ -253,5 +253,106 @@ export async function registerRoutes(app: Express, io?: SocketIOServer): Promise
     }
   });
 
+  // Link management routes
+  const links: Array<{
+    id: string;
+    title: string;
+    description: string;
+    url: string;
+    uploadedAt: string;
+  }> = [];
+
+  // Get all links
+  app.get("/api/links", async (req, res) => {
+    try {
+      res.json(links.sort((a, b) => new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime()));
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch links" });
+    }
+  });
+
+  // Upload new link
+  app.post("/api/links/upload", async (req, res) => {
+    try {
+      const { title, description, url, password } = req.body;
+
+      if (password !== "Ak47") {
+        return res.status(403).json({ message: "Access denied. Invalid password." });
+      }
+
+      if (!title || !description || !url) {
+        return res.status(400).json({ message: "Title, description, and URL are required" });
+      }
+
+      // Validate URL format
+      try {
+        new URL(url);
+      } catch {
+        return res.status(400).json({ message: "Invalid URL format" });
+      }
+
+      const newLink = {
+        id: `link-${Date.now()}-${Math.random().toString(36).substring(7)}`,
+        title: title.trim(),
+        description: description.trim(),
+        url: url.trim(),
+        uploadedAt: new Date().toISOString()
+      };
+
+      links.push(newLink);
+
+      // Broadcast link upload to all connected clients
+      if (io) {
+        io.emit('link-uploaded', newLink);
+        console.log(`Link uploaded and broadcasted: ${newLink.title}`);
+      }
+
+      res.json(newLink);
+    } catch (error) {
+      console.error('Link upload error:', error);
+      res.status(500).json({ message: "Failed to upload link" });
+    }
+  });
+
+  // Delete link
+  app.delete("/api/links/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { password } = req.body;
+
+      if (!password || password !== 'Ak47') {
+        return res.status(403).json({ message: "Access denied. Invalid password required for deletion." });
+      }
+
+      const linkIndex = links.findIndex(link => link.id === id);
+      
+      if (linkIndex === -1) {
+        return res.status(404).json({ message: "Link not found" });
+      }
+
+      const deletedLink = links[linkIndex];
+      links.splice(linkIndex, 1);
+
+      // Broadcast link deletion to all connected clients
+      if (io) {
+        io.emit('link-deleted', {
+          linkId: id,
+          title: deletedLink.title
+        });
+        console.log(`Link deletion broadcasted: ${deletedLink.title}`);
+      }
+
+      res.json({
+        message: "Link permanently deleted",
+        linkId: id,
+        title: deletedLink.title,
+        deletedAt: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error('Link delete error:', error);
+      res.status(500).json({ message: "Failed to delete link" });
+    }
+  });
+
 
 }
