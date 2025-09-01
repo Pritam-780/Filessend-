@@ -47,6 +47,16 @@ let chatPassword = "Ak47";
 let isWebsiteOnline = true;
 let adminPassword = "@gmail.pritam#";
 
+// Helper function for input validation
+function validateInput(input: string, maxLength: number): boolean {
+  // Basic validation: check for empty string and length
+  if (!input || input.length > maxLength) {
+    return false;
+  }
+  // More sophisticated validation can be added here (e.g., regex for specific patterns)
+  return true;
+}
+
 // Export function to get current chat password
 export function getChatPassword(): string {
   return chatPassword;
@@ -63,7 +73,7 @@ export async function registerRoutes(app: Express, io?: SocketIOServer): Promise
   app.post("/api/admin/toggle-website", async (req, res) => {
     try {
       const { isOnline } = req.body;
-      
+
       if (typeof isOnline !== 'boolean') {
         return res.status(400).json({ message: "isOnline must be a boolean" });
       }
@@ -193,13 +203,13 @@ export async function registerRoutes(app: Express, io?: SocketIOServer): Promise
     try {
       const { id } = req.params;
       const file = await storage.getFile(id);
-      
+
       if (!file) {
         return res.status(404).json({ message: "File not found" });
       }
 
       const filePath = path.join(uploadDir, file.filename);
-      
+
       if (!fs.existsSync(filePath)) {
         return res.status(404).json({ message: "File not found on disk" });
       }
@@ -215,13 +225,13 @@ export async function registerRoutes(app: Express, io?: SocketIOServer): Promise
     try {
       const { id } = req.params;
       const file = await storage.getFile(id);
-      
+
       if (!file) {
         return res.status(404).json({ message: "File not found" });
       }
 
       const filePath = path.join(uploadDir, file.filename);
-      
+
       if (!fs.existsSync(filePath)) {
         return res.status(404).json({ message: "File not found on disk" });
       }
@@ -300,8 +310,13 @@ export async function registerRoutes(app: Express, io?: SocketIOServer): Promise
     try {
       const { newPassword } = req.body;
 
-      if (!newPassword) {
-        return res.status(400).json({ message: "New password is required" });
+      if (!newPassword || !validateInput(newPassword, 100)) {
+        return res.status(400).json({ message: "Invalid password format" });
+      }
+
+      // Password strength validation
+      if (newPassword.length < 6) {
+        return res.status(400).json({ message: "Password must be at least 6 characters long" });
       }
 
       // Update all passwords
@@ -323,8 +338,8 @@ export async function registerRoutes(app: Express, io?: SocketIOServer): Promise
     try {
       const { newPassword } = req.body;
 
-      if (!newPassword) {
-        return res.status(400).json({ message: "New password is required" });
+      if (!newPassword || !validateInput(newPassword, 100)) {
+        return res.status(400).json({ message: "Invalid password format" });
       }
 
       // Update chat password
@@ -353,8 +368,8 @@ export async function registerRoutes(app: Express, io?: SocketIOServer): Promise
   app.post("/api/admin/change-file-upload-password", async (req, res) => {
     try {
       const { newPassword } = req.body;
-      if (!newPassword) {
-        return res.status(400).json({ message: "New password is required" });
+      if (!newPassword || !validateInput(newPassword, 100)) {
+        return res.status(400).json({ message: "Invalid password format" });
       }
       fileUploadPassword = newPassword;
       res.json({ message: "File upload password changed successfully", changedAt: new Date().toISOString() });
@@ -366,8 +381,8 @@ export async function registerRoutes(app: Express, io?: SocketIOServer): Promise
   app.post("/api/admin/change-file-delete-password", async (req, res) => {
     try {
       const { newPassword } = req.body;
-      if (!newPassword) {
-        return res.status(400).json({ message: "New password is required" });
+      if (!newPassword || !validateInput(newPassword, 100)) {
+        return res.status(400).json({ message: "Invalid password format" });
       }
       fileDeletePassword = newPassword;
       res.json({ message: "File delete password changed successfully", changedAt: new Date().toISOString() });
