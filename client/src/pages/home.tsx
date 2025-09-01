@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link } from "wouter";
-import { Search, Grid, List, GraduationCap, BookOpen, Users, Plus, MessageCircle, FileText } from "lucide-react";
+import { Search, Grid, List, GraduationCap, BookOpen, Users, Plus, MessageCircle, FileText, Megaphone } from "lucide-react";
 import Header from "@/components/header";
 import FileCard from "@/components/file-card";
 import PreviewModal from "@/components/preview-modal";
@@ -14,6 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import ChatRoom from "@/components/chat-room";
 import LinkUploadModal from "@/components/link-upload-modal";
 import ViewLinksModal from "@/components/view-links-modal";
+import AnnouncementModal from "@/components/announcement-modal";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { io, Socket } from "socket.io-client";
 
@@ -32,6 +33,8 @@ export default function Home() {
   const [showLinkUploadModal, setShowLinkUploadModal] = useState(false);
   const [showLinksModal, setShowLinksModal] = useState(false);
   const [uploadedLinks, setUploadedLinks] = useState<any[]>([]);
+  const [showAnnouncementModal, setShowAnnouncementModal] = useState(false);
+  const [hasAnnouncement, setHasAnnouncement] = useState(false);
   const queryClient = useQueryClient();
 
   const { data: fetchedFiles = [], isLoading: isFetching, refetch } = useQuery({
@@ -85,6 +88,19 @@ export default function Home() {
       setUploadedLinks(prevLinks => prevLinks.filter(link => link.id !== data.linkId));
     });
 
+    socket.on('announcement-created', (data) => {
+      setHasAnnouncement(true);
+      toast({
+        title: "📢 New Announcement!",
+        description: "A new announcement has been posted. Click the announcement button to read it.",
+        className: "bg-gradient-to-r from-orange-50 to-red-50 border-orange-200",
+      });
+    });
+
+    socket.on('announcement-deleted', (data) => {
+      setHasAnnouncement(false);
+    });
+
     return () => {
       socket.disconnect();
     };
@@ -106,7 +122,20 @@ export default function Home() {
       }
     };
 
+    const checkForAnnouncement = async () => {
+      try {
+        const response = await fetch('/api/announcement');
+        if (response.ok && mounted) {
+          const data = await response.json();
+          setHasAnnouncement(!!data.announcement);
+        }
+      } catch (error) {
+        console.error('Failed to check for announcement:', error);
+      }
+    };
+
     loadUploadedLinks();
+    checkForAnnouncement();
 
     // Listen for mobile menu events
     const handleOpenLinkUploadModal = () => setShowLinkUploadModal(true);
@@ -220,6 +249,15 @@ export default function Home() {
 Your colorful digital library for organizing and accessing academic books, relaxing reads, and professional resources with vibrant style.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+            {hasAnnouncement && (
+              <Button
+                onClick={() => setShowAnnouncementModal(true)}
+                className="bg-gradient-to-r from-orange-600 via-red-600 to-pink-600 text-white px-8 py-3 rounded-xl text-lg font-bold hover:from-orange-700 hover:via-red-700 hover:to-pink-700 shadow-2xl transform hover:scale-105 transition-all duration-300 animate-pulse"
+              >
+                <Megaphone className="h-5 w-5 mr-2 animate-bounce" />
+                📢 New Announcement!
+              </Button>
+            )}
             <Button
               onClick={() => setShowChatRoom(true)}
               className="bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 text-white px-8 py-3 rounded-xl text-lg font-bold hover:from-emerald-700 hover:via-teal-700 hover:to-cyan-700 shadow-2xl transform hover:scale-105 transition-all duration-300"
@@ -393,6 +431,14 @@ Your colorful digital library for organizing and accessing academic books, relax
           onDelete={(linkId) => {
             setUploadedLinks(prev => prev.filter(link => link.id !== linkId));
           }}
+        />
+      )}
+
+      {/* Announcement Modal */}
+      {showAnnouncementModal && (
+        <AnnouncementModal
+          isOpen={showAnnouncementModal}
+          onClose={() => setShowAnnouncementModal(false)}
         />
       )}
     </div>

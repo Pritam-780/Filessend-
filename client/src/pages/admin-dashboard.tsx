@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
-import { Lock, Key, Save, ArrowLeft, Shield, MessageCircle, Upload, Trash2, Link, FileText, ChevronDown, ChevronRight } from "lucide-react";
+import { Lock, Key, Save, ArrowLeft, Shield, MessageCircle, Upload, Trash2, Link, FileText, ChevronDown, ChevronRight, Megaphone, Plus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
@@ -37,7 +37,13 @@ export default function AdminDashboard() {
   const [isWebsiteOnline, setIsWebsiteOnline] = useState(true);
   const [isLoadingWebsiteToggle, setIsLoadingWebsiteToggle] = useState(false);
 
-  // Load initial website status
+  // Announcement states
+  const [currentAnnouncement, setCurrentAnnouncement] = useState<any>(null);
+  const [announcementTitle, setAnnouncementTitle] = useState("");
+  const [announcementMessage, setAnnouncementMessage] = useState("");
+  const [isLoadingAnnouncement, setIsLoadingAnnouncement] = useState(false);
+
+  // Load initial website status and announcements
   useEffect(() => {
     const loadWebsiteStatus = async () => {
       try {
@@ -50,8 +56,21 @@ export default function AdminDashboard() {
         console.error('Failed to load website status:', error);
       }
     };
+
+    const loadCurrentAnnouncement = async () => {
+      try {
+        const response = await fetch('/api/announcement');
+        if (response.ok) {
+          const data = await response.json();
+          setCurrentAnnouncement(data.announcement);
+        }
+      } catch (error) {
+        console.error('Failed to load announcement:', error);
+      }
+    };
     
     loadWebsiteStatus();
+    loadCurrentAnnouncement();
   }, []);
 
   // Toggle section expansion
@@ -240,6 +259,96 @@ export default function AdminDashboard() {
     setIsLoadingWebsiteToggle(false);
   };
 
+  // Announcement handlers
+  const handleAnnouncementCreate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoadingAnnouncement(true);
+
+    if (!announcementTitle.trim() || !announcementMessage.trim()) {
+      toast({
+        title: "Error",
+        description: "Title and message are required.",
+        variant: "destructive",
+      });
+      setIsLoadingAnnouncement(false);
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/admin/announcement', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          title: announcementTitle,
+          message: announcementMessage,
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setCurrentAnnouncement(data.announcement);
+        setAnnouncementTitle("");
+        setAnnouncementMessage("");
+        toast({
+          title: "Announcement Created",
+          description: "Your announcement has been posted successfully!",
+          className: "bg-gradient-to-r from-green-50 to-emerald-50 border-green-200",
+        });
+      } else {
+        const error = await response.json();
+        toast({
+          title: "Error",
+          description: error.message || "Failed to create announcement.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Network error. Please try again.",
+        variant: "destructive",
+      });
+    }
+
+    setIsLoadingAnnouncement(false);
+  };
+
+  const handleAnnouncementDelete = async () => {
+    setIsLoadingAnnouncement(true);
+
+    try {
+      const response = await fetch('/api/admin/announcement', {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        setCurrentAnnouncement(null);
+        toast({
+          title: "Announcement Deleted",
+          description: "The announcement has been removed successfully!",
+          className: "bg-gradient-to-r from-green-50 to-emerald-50 border-green-200",
+        });
+      } else {
+        const error = await response.json();
+        toast({
+          title: "Error",
+          description: error.message || "Failed to delete announcement.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Network error. Please try again.",
+        variant: "destructive",
+      });
+    }
+
+    setIsLoadingAnnouncement(false);
+  };
+
   // Component for rendering collapsible password sections
   const CollapsiblePasswordSection = ({
     sectionId,
@@ -383,6 +492,93 @@ export default function AdminDashboard() {
             </h1>
             <p className="text-gray-600 mt-2">Manage individual passwords for different system operations</p>
             <p className="text-sm text-gray-500 mt-2">Click on any section below to expand password settings</p>
+          </div>
+
+          {/* Announcement Management Section */}
+          <div className="mb-8 p-6 bg-gradient-to-r from-orange-50 to-red-50 rounded-xl border border-orange-200 shadow-lg">
+            <div className="flex items-center gap-4 mb-6">
+              <div className="bg-gradient-to-br from-orange-100 to-red-100 w-12 h-12 rounded-full flex items-center justify-center shadow-md">
+                <Megaphone className="h-6 w-6 text-orange-600" />
+              </div>
+              <div>
+                <h3 className="text-xl font-bold text-gray-800">Announcement Management</h3>
+                <p className="text-gray-600">Create and manage announcements for all users</p>
+              </div>
+            </div>
+
+            {/* Current Announcement Display */}
+            {currentAnnouncement ? (
+              <div className="mb-6 p-4 bg-white rounded-lg border border-orange-200 shadow-md">
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <h4 className="font-bold text-gray-800 mb-2">📢 {currentAnnouncement.title}</h4>
+                    <p className="text-gray-600 text-sm mb-2">{currentAnnouncement.message}</p>
+                    <p className="text-xs text-gray-500">
+                      Posted: {new Date(currentAnnouncement.createdAt).toLocaleDateString()}
+                    </p>
+                  </div>
+                  <Button
+                    onClick={handleAnnouncementDelete}
+                    disabled={isLoadingAnnouncement}
+                    variant="destructive"
+                    size="sm"
+                    className="ml-4"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                <p className="text-gray-500 text-center">No active announcement</p>
+              </div>
+            )}
+
+            {/* Create New Announcement Form */}
+            <form onSubmit={handleAnnouncementCreate} className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-700">Announcement Title</label>
+                <Input
+                  type="text"
+                  value={announcementTitle}
+                  onChange={(e) => setAnnouncementTitle(e.target.value)}
+                  placeholder="Enter announcement title..."
+                  className="border-orange-300 focus:border-orange-500 focus:ring-orange-500"
+                  disabled={isLoadingAnnouncement}
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-700">Announcement Message</label>
+                <textarea
+                  value={announcementMessage}
+                  onChange={(e) => setAnnouncementMessage(e.target.value)}
+                  placeholder="Enter your announcement message..."
+                  className="w-full min-h-[120px] px-3 py-2 border border-orange-300 rounded-md focus:border-orange-500 focus:ring-orange-500 focus:ring-1 focus:outline-none resize-none"
+                  disabled={isLoadingAnnouncement}
+                  required
+                />
+              </div>
+
+              <Button
+                type="submit"
+                className="w-full bg-gradient-to-r from-orange-600 to-red-600 text-white hover:from-orange-700 hover:to-red-700 shadow-lg font-medium py-3"
+                disabled={isLoadingAnnouncement || !announcementTitle || !announcementMessage}
+              >
+                {isLoadingAnnouncement ? (
+                  <div className="flex items-center gap-2">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    {currentAnnouncement ? 'Updating...' : 'Creating...'}
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <Plus className="h-4 w-4" />
+                    {currentAnnouncement ? 'Update Announcement' : 'Create Announcement'}
+                  </div>
+                )}
+              </Button>
+            </form>
           </div>
 
           {/* Website Control Section */}

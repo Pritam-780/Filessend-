@@ -47,6 +47,14 @@ let chatPassword = "Ak47";
 let isWebsiteOnline = true;
 let adminPassword = "@gmail.pritam#";
 
+// Announcement system
+let currentAnnouncement: {
+  id: string;
+  title: string;
+  message: string;
+  createdAt: string;
+} | null = null;
+
 // Helper function for input validation
 function validateInput(input: string, maxLength: number): boolean {
   // Basic validation: check for empty string and length
@@ -302,6 +310,84 @@ export async function registerRoutes(app: Express, io?: SocketIOServer): Promise
       }
     } catch (error) {
       res.status(500).json({ message: "Login failed" });
+    }
+  });
+
+  // Get current announcement
+  app.get("/api/announcement", async (req, res) => {
+    try {
+      res.json({ announcement: currentAnnouncement });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get announcement" });
+    }
+  });
+
+  // Create/Update announcement (Admin only)
+  app.post("/api/admin/announcement", async (req, res) => {
+    try {
+      const { title, message } = req.body;
+
+      if (!title || !message) {
+        return res.status(400).json({ message: "Title and message are required" });
+      }
+
+      if (!validateInput(title, 100) || !validateInput(message, 1000)) {
+        return res.status(400).json({ message: "Invalid title or message format" });
+      }
+
+      const newAnnouncement = {
+        id: Date.now().toString(),
+        title: title.trim(),
+        message: message.trim(),
+        createdAt: new Date().toISOString()
+      };
+
+      currentAnnouncement = newAnnouncement;
+
+      // Broadcast new announcement to all connected clients
+      if (io) {
+        io.emit('announcement-created', {
+          announcement: newAnnouncement,
+          message: 'New announcement posted',
+          timestamp: new Date().toISOString()
+        });
+      }
+
+      res.json({
+        message: "Announcement created successfully",
+        announcement: newAnnouncement
+      });
+    } catch (error) {
+      console.error('Announcement creation error:', error);
+      res.status(500).json({ message: "Failed to create announcement" });
+    }
+  });
+
+  // Delete announcement (Admin only)
+  app.delete("/api/admin/announcement", async (req, res) => {
+    try {
+      if (!currentAnnouncement) {
+        return res.status(404).json({ message: "No announcement to delete" });
+      }
+
+      const deletedAnnouncement = currentAnnouncement;
+      currentAnnouncement = null;
+
+      // Broadcast announcement deletion to all connected clients
+      if (io) {
+        io.emit('announcement-deleted', {
+          message: 'Announcement removed',
+          timestamp: new Date().toISOString()
+        });
+      }
+
+      res.json({
+        message: "Announcement deleted successfully",
+        deletedAnnouncement
+      });
+    } catch (error) {
+      console.error('Announcement deletion error:', error);
+      res.status(500).json({ message: "Failed to delete announcement" });
     }
   });
 
