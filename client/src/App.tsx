@@ -52,22 +52,29 @@ export default function App() {
     const checkVisitorStatus = async () => {
       try {
         const response = await fetch('/api/visitor/check');
-        if (response.status === 403) {
-          // IP is blocked, show blocked page immediately
-          setIsBlocked(true);
-          setShowNamePrompt(false);
-          return;
-        }
         if (response.ok) {
           const data = await response.json();
-          setIsBlocked(data.isBlocked);
-          if (data.hasName) {
-            setShowNamePrompt(false);
+          if (data.isBlocked) {
+            setIsBlocked(true);
+            return;
+          }
+
+          const storedName = localStorage.getItem('visitorName');
+          if (storedName) {
+            setVisitorName(storedName);
+            // Update visitor info with stored name
+            await fetch('/api/visitor/update', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ name: storedName })
+            });
+          } else {
+            setShowNamePrompt(true);
           }
         }
       } catch (error) {
         console.error('Failed to check visitor status:', error);
-        // If there's a network error, still allow showing name prompt
+        // Show name prompt as fallback
         const storedName = localStorage.getItem('visitorName');
         if (!storedName) {
           setShowNamePrompt(true);

@@ -8,12 +8,10 @@ import { useToast } from "@/hooks/use-toast";
 // Define the structure for visitor data
 interface Visitor {
   id: string;
-  name?: string;
+  name: string;
   ip: string;
-  firstVisit: string;
-  lastActive: string;
+  timestamp: string;
   isBlocked: boolean;
-  visitCount: number;
 }
 
 export default function AdminDashboard() {
@@ -875,89 +873,53 @@ export default function AdminDashboard() {
                         <tr>
                           <th scope="col" className="px-6 py-3 text-left text-xs font-bold text-blue-600 uppercase tracking-wider">Name</th>
                           <th scope="col" className="px-6 py-3 text-left text-xs font-bold text-blue-600 uppercase tracking-wider">IP Address</th>
-                          <th scope="col" className="px-6 py-3 text-left text-xs font-bold text-blue-600 uppercase tracking-wider">First Visit</th>
-                          <th scope="col" className="px-6 py-3 text-left text-xs font-bold text-blue-600 uppercase tracking-wider">Last Active</th>
-                          <th scope="col" className="px-6 py-3 text-left text-xs font-bold text-blue-600 uppercase tracking-wider">Visits</th>
+                          <th scope="col" className="px-6 py-3 text-left text-xs font-bold text-blue-600 uppercase tracking-wider">Timestamp</th>
                           <th scope="col" className="px-6 py-3 text-left text-xs font-bold text-blue-600 uppercase tracking-wider">Status</th>
                           <th scope="col" className="px-6 py-3 text-left text-xs font-bold text-blue-600 uppercase tracking-wider">Actions</th>
                         </tr>
                       </thead>
                       <tbody className="bg-white divide-y divide-gray-200">
                         {visitors.map((visitor) => (
-                          <tr key={visitor.id} className={visitor.isBlocked ? 'bg-red-50 border-l-4 border-red-400' : 'hover:bg-gray-50'}>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                              <div className="flex items-center gap-2">
-                                <div className={`w-2 h-2 rounded-full ${visitor.isBlocked ? 'bg-red-500' : 'bg-green-500'}`}></div>
-                                {visitor.name || 'Anonymous'}
-                              </div>
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-mono">{visitor.ip}</td>
+                          <tr key={visitor.id} className={visitor.isBlocked ? 'bg-red-50' : ''}>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{visitor.name || 'N/A'}</td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{visitor.ip}</td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                              {new Date(visitor.firstVisit).toLocaleDateString('en-US', {
-                                month: 'short',
-                                day: 'numeric',
-                                hour: '2-digit',
-                                minute: '2-digit'
-                              })}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                              {new Date(visitor.lastActive).toLocaleDateString('en-US', {
-                                month: 'short',
-                                day: 'numeric',
-                                hour: '2-digit',
-                                minute: '2-digit'
-                              })}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                              <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs font-medium">
-                                {visitor.visitCount}
-                              </span>
+                              {new Date(visitor.timestamp).toLocaleString()}
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm">
-                              <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold ${
+                              <span className={`px-3 py-1 rounded-full text-xs font-bold ${
                                 visitor.isBlocked 
-                                  ? 'bg-red-100 text-red-800 border border-red-200' 
-                                  : 'bg-green-100 text-green-800 border border-green-200'
+                                  ? 'bg-red-100 text-red-800' 
+                                  : 'bg-green-100 text-green-800'
                               }`}>
-                                {visitor.isBlocked ? (
-                                  <>🚫 Blocked</>
-                                ) : (
-                                  <>✅ Active</>
-                                )}
+                                {visitor.isBlocked ? 'Blocked' : 'Active'}
                               </span>
                             </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                              <div className="flex gap-2">
-                                {visitor.isBlocked ? (
-                                  <>
-                                    <Button
-                                      onClick={() => handleUnblockVisitor(visitor.ip)}
-                                      disabled={isLoadingVisitors}
-                                      className="bg-green-500 hover:bg-green-600 text-white px-3 py-1 text-xs rounded-md shadow-md transform hover:scale-105 transition-all duration-200"
-                                      title="Unblock this IP"
-                                    >
-                                      🔓 Unblock
-                                    </Button>
-                                    <Button
-                                      onClick={() => handleDeleteVisitor(visitor.ip)}
-                                      disabled={isLoadingVisitors}
-                                      className="bg-gray-500 hover:bg-gray-600 text-white px-3 py-1 text-xs rounded-md shadow-md transform hover:scale-105 transition-all duration-200"
-                                      title="Delete this visitor record"
-                                    >
-                                      🗑️ Delete
-                                    </Button>
-                                  </>
-                                ) : (
-                                  <Button
-                                    onClick={() => handleBlockVisitor(visitor.ip)}
-                                    disabled={isLoadingVisitors}
-                                    className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 text-xs rounded-md shadow-md transform hover:scale-105 transition-all duration-200"
-                                    title="Block this IP"
-                                  >
-                                    🚫 Block
-                                  </Button>
-                                )}
-                              </div>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium flex gap-2">
+                              {visitor.isBlocked ? (
+                                <Button
+                                  onClick={() => handleUnblockVisitor(visitor.ip)}
+                                  disabled={isLoadingVisitors}
+                                  className="bg-green-500 hover:bg-green-600 text-white px-3 py-1 text-xs rounded-md"
+                                >
+                                  Unblock
+                                </Button>
+                              ) : (
+                                <Button
+                                  onClick={() => handleBlockVisitor(visitor.ip)}
+                                  disabled={isLoadingVisitors}
+                                  className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 text-xs rounded-md"
+                                >
+                                  Block
+                                </Button>
+                              )}
+                              <Button
+                                onClick={() => handleDeleteVisitor(visitor.ip)}
+                                disabled={isLoadingVisitors}
+                                className="bg-gray-500 hover:bg-gray-600 text-white px-3 py-1 text-xs rounded-md"
+                              >
+                                Delete
+                              </Button>
                             </td>
                           </tr>
                         ))}
