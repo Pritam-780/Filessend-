@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Tv, Wifi, WifiOff } from "lucide-react";
 
-export function NoSignal() {
+function NoSignal() {
   const [dots, setDots] = useState("");
   const [staticNoise, setStaticNoise] = useState(0);
 
@@ -136,3 +136,5 @@ export function NoSignal() {
     </div>
   );
 }
+
+export default NoSignal;
