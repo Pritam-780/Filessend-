@@ -105,7 +105,7 @@ export function NoSignal() {
       </div>
 
       {/* Custom CSS animations */}
-      <style>{`
+      <style jsx>{`
         @keyframes fadeIn {
           from { opacity: 0; }
           to { opacity: 1; }
